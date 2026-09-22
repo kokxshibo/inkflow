@@ -35,10 +35,10 @@ export default async function ProjectsPage({
       ...(query
         ? {
             OR: [
-              { title: { contains: query } },
-              { description: { contains: query } },
-              { client: { firstName: { contains: query } } },
-              { client: { lastName: { contains: query } } },
+              { title: { contains: query, mode: 'insensitive' } },
+              { description: { contains: query, mode: 'insensitive' } },
+              { client: { firstName: { contains: query, mode: 'insensitive' } } },
+              { client: { lastName: { contains: query, mode: 'insensitive' } } },
             ],
           }
         : {}),

@@ -14,27 +14,27 @@ export async function GET(request: Request) {
     db.client.findMany({
       where: {
         OR: [
-          { firstName: { contains: query } },
-          { lastName: { contains: query } },
-          { email: { contains: query } },
-          { phone: { contains: query } },
-          { instagram: { contains: query } },
+          { firstName: { contains: query, mode: 'insensitive' } },
+          { lastName: { contains: query, mode: 'insensitive' } },
+          { email: { contains: query, mode: 'insensitive' } },
+          { phone: { contains: query, mode: 'insensitive' } },
+          { instagram: { contains: query, mode: 'insensitive' } },
         ],
       },
       take: 6,
     }),
     db.project.findMany({
-      where: { title: { contains: query } },
+      where: { title: { contains: query, mode: 'insensitive' } },
       include: { client: true },
       take: 5,
     }),
     db.quote.findMany({
-      where: { number: { contains: query } },
+      where: { number: { contains: query, mode: 'insensitive' } },
       include: { client: true },
       take: 4,
     }),
     db.invoice.findMany({
-      where: { number: { contains: query } },
+      where: { number: { contains: query, mode: 'insensitive' } },
       include: { client: true },
       take: 4,
     }),

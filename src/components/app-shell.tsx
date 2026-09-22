@@ -24,6 +24,10 @@ import {
   ChevronDown,
   PanelLeftClose,
   PanelLeft,
+  Wallet,
+  HeartPulse,
+  ScanLine,
+  MoreHorizontal,
 } from "lucide-react";
 import { cn, initials } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -50,6 +54,14 @@ interface NavSection {
   items: NavItem[];
 }
 
+export interface ShellCounts {
+  requests: number;
+  unreadMessages: number;
+  todayAppointments: number;
+  expensesToPay: number;
+  obligationsDue: number;
+}
+
 export function AppShell({
   children,
   user,
@@ -59,7 +71,7 @@ export function AppShell({
   children: React.ReactNode;
   user: { name: string; email: string };
   studioName: string;
-  counts: { requests: number; unreadMessages: number; todayAppointments: number };
+  counts: ShellCounts;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -68,7 +80,6 @@ export function AppShell({
   const [paletteOpen, setPaletteOpen] = React.useState(false);
   const [theme, setTheme] = React.useState<"dark" | "light">("dark");
 
-  // Restaure l'état de la sidebar et le thème
   React.useEffect(() => {
     try {
       setCollapsed(localStorage.getItem("inkflow-sidebar") === "collapsed");
@@ -80,12 +91,10 @@ export function AppShell({
     }
   }, []);
 
-  // Ferme le menu mobile à chaque navigation
   React.useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);
 
-  // Raccourcis clavier globaux
   React.useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
@@ -142,12 +151,27 @@ export function AppShell({
       ],
     },
     {
-      label: "Facturation",
+      label: "Finances",
       items: [
         { href: "/devis", label: "Devis", icon: FileText },
         { href: "/factures", label: "Factures", icon: ReceiptText },
+        { href: "/depenses", label: "Dépenses", icon: Wallet, badge: counts.expensesToPay },
       ],
     },
+    {
+      label: "Personnel",
+      items: [
+        { href: "/perso", label: "AVS, santé, impôts", icon: HeartPulse, badge: counts.obligationsDue },
+      ],
+    },
+  ];
+
+  // Cinq onglets maximum en bas d'écran : au-delà, ça devient illisible au pouce.
+  const tabs: NavItem[] = [
+    { href: "/tableau-de-bord", label: "Accueil", icon: LayoutDashboard },
+    { href: "/agenda", label: "Agenda", icon: CalendarDays, badge: counts.todayAppointments },
+    { href: "/clients", label: "Clients", icon: Users },
+    { href: "/factures", label: "Factures", icon: ReceiptText },
   ];
 
   const sidebarWidth = collapsed ? 68 : 248;
@@ -156,7 +180,7 @@ export function AppShell({
     <div className="min-h-dvh bg-[var(--bg)]">
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
 
-      {/* ─── Sidebar bureau ─── */}
+      {/* ─── Barre latérale (bureau) ─── */}
       <motion.aside
         initial={false}
         animate={{ width: sidebarWidth }}
@@ -179,7 +203,7 @@ export function AppShell({
         />
       </motion.aside>
 
-      {/* ─── Tiroir mobile ─── */}
+      {/* ─── Tiroir (mobile) ─── */}
       <AnimatePresence>
         {mobileOpen && (
           <>
@@ -189,7 +213,7 @@ export function AppShell({
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
               onClick={() => setMobileOpen(false)}
-              className="fixed inset-0 z-40 bg-black/60 backdrop-blur-[2px] lg:hidden"
+              className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px] lg:hidden"
             />
             <motion.aside
               initial={{ x: "-100%" }}
@@ -197,8 +221,9 @@ export function AppShell({
               exit={{ x: "-100%" }}
               transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
               className={cn(
-                "fixed inset-y-0 left-0 z-50 w-[272px] lg:hidden flex flex-col",
+                "fixed inset-y-0 left-0 z-50 w-[280px] max-w-[85vw] lg:hidden flex flex-col",
                 "border-r border-[var(--border)] bg-[var(--bg-subtle)]",
+                "safe-top safe-bottom",
               )}
             >
               <SidebarBody
@@ -228,7 +253,8 @@ export function AppShell({
         {/* Barre supérieure */}
         <header
           className={cn(
-            "sticky top-0 z-30 h-14 flex items-center gap-2 px-4 sm:px-6",
+            "sticky top-0 z-30 flex items-center gap-2 px-4 sm:px-6",
+            "h-14 pt-[var(--safe-top)] box-content lg:box-border lg:pt-0",
             "border-b border-[var(--border)] glass",
           )}
         >
@@ -268,6 +294,19 @@ export function AppShell({
 
           <div className="flex-1" />
 
+          {/* Raccourci scan : l'action la plus fréquente sur téléphone */}
+          <Button
+            asChild
+            variant="secondary"
+            size="icon"
+            className="sm:hidden"
+            aria-label="Scanner une facture"
+          >
+            <Link href="/depenses/scanner">
+              <ScanLine />
+            </Link>
+          </Button>
+
           <Dropdown>
             <DropdownTrigger asChild>
               <Button size="sm" variant="primary" className="gap-1.5">
@@ -294,17 +333,88 @@ export function AppShell({
               <DropdownItem onSelect={() => router.push("/factures/nouvelle")}>
                 <ReceiptText /> Nouvelle facture
               </DropdownItem>
+              <DropdownSeparator />
+              <DropdownItem onSelect={() => router.push("/depenses/scanner")}>
+                <ScanLine /> Scanner une facture fournisseur
+              </DropdownItem>
             </DropdownContent>
           </Dropdown>
         </header>
 
-        <main className="px-4 sm:px-6 py-6 sm:py-8 max-w-[1400px] mx-auto">{children}</main>
+        <main className="px-4 sm:px-6 py-6 sm:py-8 max-w-[1400px] mx-auto has-tabbar lg:pb-8">
+          {children}
+        </main>
       </div>
+
+      {/* ─── Barre d'onglets (mobile) ─── */}
+      <nav
+        className={cn(
+          "fixed bottom-0 inset-x-0 z-40 lg:hidden tabbar-hide-on-keyboard",
+          "border-t border-[var(--border)] glass",
+          "pb-[var(--safe-bottom)]",
+        )}
+        aria-label="Navigation principale"
+      >
+        <ul className="grid grid-cols-5 h-[var(--tabbar-height)]">
+          {tabs.map((tab) => {
+            const active =
+              pathname === tab.href || pathname.startsWith(`${tab.href}/`);
+            return (
+              <li key={tab.href}>
+                <Link
+                  href={tab.href}
+                  className={cn(
+                    "relative flex flex-col items-center justify-center gap-0.5 h-full",
+                    "text-[10px] font-medium transition-colors duration-200",
+                    active ? "text-[var(--accent)]" : "text-[var(--fg-subtle)]",
+                  )}
+                >
+                  {active && (
+                    <motion.span
+                      layoutId="tab-active"
+                      transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                      className="absolute top-0 h-0.5 w-8 rounded-full bg-[var(--accent)]"
+                    />
+                  )}
+                  <span className="relative">
+                    <tab.icon className="size-[21px]" />
+                    {tab.badge ? (
+                      <span className="absolute -top-1 -right-1.5 min-w-[15px] h-[15px] px-1 grid place-items-center rounded-full bg-[var(--accent)] text-[9px] font-semibold text-[var(--accent-fg)] tabular">
+                        {tab.badge > 9 ? "9+" : tab.badge}
+                      </span>
+                    ) : null}
+                  </span>
+                  {tab.label}
+                </Link>
+              </li>
+            );
+          })}
+
+          <li>
+            <button
+              type="button"
+              onClick={() => setMobileOpen(true)}
+              className={cn(
+                "relative flex flex-col items-center justify-center gap-0.5 h-full w-full",
+                "text-[10px] font-medium text-[var(--fg-subtle)] transition-colors",
+              )}
+            >
+              <span className="relative">
+                <MoreHorizontal className="size-[21px]" />
+                {counts.requests + counts.expensesToPay + counts.obligationsDue > 0 && (
+                  <span className="absolute -top-0.5 -right-1 size-2 rounded-full bg-[var(--accent)]" />
+                )}
+              </span>
+              Plus
+            </button>
+          </li>
+        </ul>
+      </nav>
     </div>
   );
 }
 
-/* ──────────────────────── Corps de la sidebar ──────────────────────── */
+/* ──────────────────────── Corps de la barre latérale ──────────────────────── */
 
 function SidebarBody({
   sections,
@@ -331,7 +441,6 @@ function SidebarBody({
 }) {
   return (
     <>
-      {/* Logo */}
       <div
         className={cn(
           "h-14 flex items-center gap-2.5 border-b border-[var(--border)] shrink-0",
@@ -366,7 +475,6 @@ function SidebarBody({
         )}
       </div>
 
-      {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-3 px-2.5 space-y-5">
         {sections.map((section, index) => (
           <div key={index} className="space-y-0.5">
@@ -384,7 +492,7 @@ function SidebarBody({
                   href={item.href}
                   title={collapsed ? item.label : undefined}
                   className={cn(
-                    "relative group flex items-center gap-2.5 h-9 rounded-[var(--radius-sm)]",
+                    "relative group flex items-center gap-2.5 h-10 rounded-[var(--radius-sm)]",
                     "text-[13px] font-medium transition-colors duration-200",
                     collapsed ? "justify-center px-0" : "px-2.5",
                     active
@@ -408,7 +516,7 @@ function SidebarBody({
                   {!collapsed && <span className="relative truncate">{item.label}</span>}
                   {item.badge ? (
                     collapsed ? (
-                      <span className="absolute top-1 right-1.5 size-[7px] rounded-full bg-[var(--accent)] ring-2 ring-[var(--bg-subtle)]" />
+                      <span className="absolute top-1.5 right-1.5 size-[7px] rounded-full bg-[var(--accent)] ring-2 ring-[var(--bg-subtle)]" />
                     ) : (
                       <span
                         className={cn(
@@ -428,13 +536,12 @@ function SidebarBody({
         ))}
       </nav>
 
-      {/* Pied */}
       <div className="border-t border-[var(--border)] p-2.5 space-y-0.5 shrink-0">
         <Link
           href="/reglages"
           title={collapsed ? "Réglages" : undefined}
           className={cn(
-            "flex items-center gap-2.5 h-9 rounded-[var(--radius-sm)]",
+            "flex items-center gap-2.5 h-10 rounded-[var(--radius-sm)]",
             "text-[13px] font-medium text-[var(--fg-muted)]",
             "transition-colors duration-200 hover:text-[var(--fg)] hover:bg-[var(--surface-2)]",
             collapsed ? "justify-center" : "px-2.5",
@@ -450,7 +557,7 @@ function SidebarBody({
             onClick={onToggleTheme}
             title={theme === "dark" ? "Passer en clair" : "Passer en sombre"}
             className={cn(
-              "flex items-center justify-center size-9 rounded-[var(--radius-sm)]",
+              "flex items-center justify-center size-10 rounded-[var(--radius-sm)]",
               "text-[var(--fg-muted)] transition-colors duration-200",
               "hover:text-[var(--fg)] hover:bg-[var(--surface-2)]",
             )}
@@ -463,7 +570,7 @@ function SidebarBody({
               onClick={onToggleCollapsed}
               title="Réduire le menu (⌘B)"
               className={cn(
-                "flex items-center justify-center size-9 rounded-[var(--radius-sm)]",
+                "flex items-center justify-center size-10 rounded-[var(--radius-sm)]",
                 "text-[var(--fg-muted)] transition-colors duration-200",
                 "hover:text-[var(--fg)] hover:bg-[var(--surface-2)]",
               )}
@@ -487,7 +594,10 @@ function SidebarBody({
                 collapsed && "justify-center",
               )}
             >
-              <Avatar initials={initials(user.name.split(" ")[0], user.name.split(" ")[1])} size="sm" />
+              <Avatar
+                initials={initials(user.name.split(" ")[0], user.name.split(" ")[1])}
+                size="sm"
+              />
               {!collapsed && (
                 <span className="min-w-0 text-left">
                   <span className="block text-[13px] font-medium text-[var(--fg)] truncate leading-tight">
@@ -502,8 +612,10 @@ function SidebarBody({
           </DropdownTrigger>
           <DropdownContent align="start" side="top">
             <DropdownLabel>{user.email}</DropdownLabel>
-            <DropdownItem onSelect={() => (window.location.href = "/reglages")}>
-              <Settings /> Réglages
+            <DropdownItem asChild>
+              <Link href="/reglages">
+                <Settings /> Réglages
+              </Link>
             </DropdownItem>
             <DropdownSeparator />
             <DropdownItem destructive onSelect={onLogout}>

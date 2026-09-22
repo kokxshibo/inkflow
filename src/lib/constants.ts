@@ -252,3 +252,121 @@ export const VAT_INFO = {
   lodgingRate: 3.8,
   thresholdCents: 10_000_000, // CHF 100'000
 } as const;
+
+/* ═════════════════════════════ Suisse ═════════════════════════════ */
+
+export const CANTONS: Option[] = [
+  { value: "AG", label: "AG — Argovie" },
+  { value: "AI", label: "AI — Appenzell Rhodes-Intérieures" },
+  { value: "AR", label: "AR — Appenzell Rhodes-Extérieures" },
+  { value: "BE", label: "BE — Berne" },
+  { value: "BL", label: "BL — Bâle-Campagne" },
+  { value: "BS", label: "BS — Bâle-Ville" },
+  { value: "FR", label: "FR — Fribourg" },
+  { value: "GE", label: "GE — Genève" },
+  { value: "GL", label: "GL — Glaris" },
+  { value: "GR", label: "GR — Grisons" },
+  { value: "JU", label: "JU — Jura" },
+  { value: "LU", label: "LU — Lucerne" },
+  { value: "NE", label: "NE — Neuchâtel" },
+  { value: "NW", label: "NW — Nidwald" },
+  { value: "OW", label: "OW — Obwald" },
+  { value: "SG", label: "SG — Saint-Gall" },
+  { value: "SH", label: "SH — Schaffhouse" },
+  { value: "SO", label: "SO — Soleure" },
+  { value: "SZ", label: "SZ — Schwytz" },
+  { value: "TG", label: "TG — Thurgovie" },
+  { value: "TI", label: "TI — Tessin" },
+  { value: "UR", label: "UR — Uri" },
+  { value: "VD", label: "VD — Vaud" },
+  { value: "VS", label: "VS — Valais" },
+  { value: "ZG", label: "ZG — Zoug" },
+  { value: "ZH", label: "ZH — Zurich" },
+];
+
+/* ══════════════════════ Dépenses fournisseurs ══════════════════════ */
+
+export const EXPENSE_CATEGORY: Option[] = [
+  { value: "inks", label: "Encres", hint: "Traçabilité des lots recommandée" },
+  { value: "needles", label: "Aiguilles et cartouches" },
+  { value: "disposables", label: "Consommables jetables", hint: "Gants, films, rasoirs…" },
+  { value: "hygiene", label: "Hygiène et désinfection" },
+  { value: "equipment", label: "Matériel et mobilier" },
+  { value: "rent", label: "Loyer" },
+  { value: "utilities", label: "Charges", hint: "Électricité, eau, internet" },
+  { value: "insurance", label: "Assurances professionnelles" },
+  { value: "software", label: "Logiciels et abonnements" },
+  { value: "marketing", label: "Marketing et communication" },
+  { value: "training", label: "Formation" },
+  { value: "travel", label: "Déplacements" },
+  { value: "waste", label: "Élimination des déchets" },
+  { value: "accounting", label: "Fiduciaire et comptabilité" },
+  { value: "bank", label: "Frais bancaires" },
+  { value: "other", label: "Autre" },
+];
+
+export const EXPENSE_STATUS: Option[] = [
+  { value: "to_pay", label: "À payer", tone: "warning" },
+  { value: "paid", label: "Payée", tone: "success" },
+  { value: "overdue", label: "En retard", tone: "danger" },
+  { value: "disputed", label: "Contestée", tone: "info" },
+];
+
+export const EXPENSE_PAYMENT_METHOD: Option[] = [
+  { value: "qr_bill", label: "QR-facture" },
+  { value: "bank_transfer", label: "Virement" },
+  { value: "twint", label: "TWINT" },
+  { value: "card", label: "Carte" },
+  { value: "direct_debit", label: "Prélèvement (LSV / e-bill)" },
+  { value: "cash", label: "Espèces" },
+];
+
+/* ═══════════════════ Gestion personnelle (Suisse) ═══════════════════ */
+
+export const OBLIGATION_KIND: Option[] = [
+  { value: "avs", label: "AVS / AI / APG", tone: "accent" },
+  { value: "lamal", label: "Assurance maladie", tone: "info" },
+  { value: "tax", label: "Impôts", tone: "warning" },
+  { value: "pillar3a", label: "3e pilier", tone: "success" },
+  { value: "insurance", label: "Autre assurance", tone: "neutral" },
+  { value: "other", label: "Autre", tone: "neutral" },
+];
+
+export const OBLIGATION_STATUS: Option[] = [
+  { value: "planned", label: "Planifiée", tone: "neutral" },
+  { value: "due", label: "À payer", tone: "warning" },
+  { value: "paid", label: "Payée", tone: "success" },
+  { value: "late", label: "En retard", tone: "danger" },
+  { value: "cancelled", label: "Annulée", tone: "neutral" },
+];
+
+/**
+ * Franchises LAMal pour un adulte. Plus la franchise est haute,
+ * plus la prime mensuelle est basse.
+ */
+export const LAMAL_FRANCHISES: Option[] = [
+  { value: "30000", label: "CHF 300" },
+  { value: "50000", label: "CHF 500" },
+  { value: "100000", label: "CHF 1'000" },
+  { value: "150000", label: "CHF 1'500" },
+  { value: "200000", label: "CHF 2'000" },
+  { value: "250000", label: "CHF 2'500" },
+];
+
+/**
+ * Repères suisses utilisés dans l'interface.
+ *
+ * ⚠️ Les taux et plafonds évoluent chaque année et dépendent de la caisse,
+ * du canton et de la situation personnelle. Ils sont ici des valeurs par
+ * défaut modifiables dans les réglages, à confirmer avec la caisse de
+ * compensation, l'assureur et la fiduciaire.
+ */
+export const SWISS_REFERENCE = {
+  /** AVS 8.1 % + AI 1.4 % + APG 0.5 % — taux maximal pour un indépendant */
+  avsMaxRate: 10.0,
+  avsComponents: { avs: 8.1, ai: 1.4, apg: 0.5 },
+  /** Quote-part LAMal : 10 % des frais au-delà de la franchise */
+  lamalCoinsuranceRate: 10,
+  /** Plafond annuel de quote-part pour un adulte : CHF 700 */
+  lamalCoinsuranceCapCents: 70_000,
+} as const;

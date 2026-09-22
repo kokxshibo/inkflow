@@ -29,11 +29,11 @@ export default async function ClientsPage({
       ...(query
         ? {
             OR: [
-              { firstName: { contains: query } },
-              { lastName: { contains: query } },
-              { email: { contains: query } },
-              { phone: { contains: query } },
-              { instagram: { contains: query } },
+              { firstName: { contains: query, mode: 'insensitive' } },
+              { lastName: { contains: query, mode: 'insensitive' } },
+              { email: { contains: query, mode: 'insensitive' } },
+              { phone: { contains: query, mode: 'insensitive' } },
+              { instagram: { contains: query, mode: 'insensitive' } },
             ],
           }
         : {}),

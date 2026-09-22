@@ -299,7 +299,7 @@ export function ProjectForm({
         </CardContent>
       </Card>
 
-      <div className="sticky bottom-0 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3.5 glass border-t border-[var(--border)] flex items-center justify-end gap-2.5 z-20">
+      <div className="sticky-actions sticky bottom-0 -mx-4 sm:-mx-6 px-4 sm:px-6 pt-3.5 glass border-t border-[var(--border)] flex items-center justify-end gap-2.5 z-20">
         <Button asChild variant="ghost" type="button">
           <Link href={project ? `/projets/${project.id}` : "/projets"}>Annuler</Link>
         </Button>

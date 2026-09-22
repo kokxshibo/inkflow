@@ -8,7 +8,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const settings = await getSettings();
 
   const now = new Date();
-  const [requests, unreadMessages, todayAppointments] = await Promise.all([
+  const inTenDays = new Date(now);
+  inTenDays.setDate(inTenDays.getDate() + 10);
+
+  const [
+    requests,
+    unreadMessages,
+    todayAppointments,
+    expensesToPay,
+    obligationsDue,
+  ] = await Promise.all([
     db.projectRequest.count({ where: { status: "new" } }),
     db.message.count({ where: { direction: "in", readAt: null } }),
     db.appointment.count({
@@ -17,13 +26,27 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         status: { in: ["confirmed", "draft"] },
       },
     }),
+    db.expense.count({ where: { status: { in: ["to_pay", "overdue"] } } }),
+    // Échéances personnelles à moins de dix jours, ou déjà en retard
+    db.obligation.count({
+      where: {
+        status: { in: ["planned", "due", "late"] },
+        dueAt: { lte: inTenDays },
+      },
+    }),
   ]);
 
   return (
     <AppShell
       user={{ name: session.name, email: session.email }}
       studioName={settings.studioName}
-      counts={{ requests, unreadMessages, todayAppointments }}
+      counts={{
+        requests,
+        unreadMessages,
+        todayAppointments,
+        expensesToPay,
+        obligationsDue,
+      }}
     >
       {children}
     </AppShell>

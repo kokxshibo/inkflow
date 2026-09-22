@@ -17,6 +17,13 @@ export async function getSettings() {
   return db.settings.create({ data: { id: 1 } });
 }
 
+/** Réglages personnels (AVS, LAMal, impôts) — ligne unique. */
+export async function getPersonalSettings() {
+  const existing = await db.personalSettings.findUnique({ where: { id: 1 } });
+  if (existing) return existing;
+  return db.personalSettings.create({ data: { id: 1 } });
+}
+
 /**
  * Numérotation séquentielle sans trou (obligation légale).
  * Format : PREFIX-ANNEE-0001

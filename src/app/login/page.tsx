@@ -1,13 +1,23 @@
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
-import { getSession } from "@/lib/auth";
+import { getSession, needsSetup } from "@/lib/auth";
 import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = { title: "Connexion" };
+export const dynamic = "force-dynamic";
 
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ suite?: string }>;
+}) {
+  // Premiere utilisation : aucun compte n'existe encore.
+  if (await needsSetup()) redirect("/bienvenue");
+
   const session = await getSession();
   if (session) redirect("/tableau-de-bord");
+
+  const { suite } = await searchParams;
 
   return (
     <div className="min-h-dvh grid lg:grid-cols-2">
@@ -72,7 +82,7 @@ export default async function LoginPage() {
             Accède à la gestion de ton salon.
           </p>
 
-          <LoginForm />
+          <LoginForm suite={suite} />
         </div>
       </div>
     </div>

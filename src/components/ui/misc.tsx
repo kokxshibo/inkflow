@@ -220,7 +220,7 @@ export function Progress({
 }: {
   value: number;
   max?: number;
-  tone?: "accent" | "success" | "warning" | "danger";
+  tone?: "accent" | "success" | "warning" | "danger" | "info";
   className?: string;
 }) {
   const percent = Math.min(100, Math.max(0, (value / max) * 100));
@@ -229,6 +229,7 @@ export function Progress({
     success: "bg-[var(--success)]",
     warning: "bg-[var(--warning)]",
     danger: "bg-[var(--danger)]",
+    info: "bg-[var(--info)]",
   }[tone];
 
   return (

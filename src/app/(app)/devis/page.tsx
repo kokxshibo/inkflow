@@ -29,9 +29,9 @@ export default async function QuotesPage({
       ...(query
         ? {
             OR: [
-              { number: { contains: query } },
-              { client: { firstName: { contains: query } } },
-              { client: { lastName: { contains: query } } },
+              { number: { contains: query, mode: 'insensitive' } },
+              { client: { firstName: { contains: query, mode: 'insensitive' } } },
+              { client: { lastName: { contains: query, mode: 'insensitive' } } },
             ],
           }
         : {}),

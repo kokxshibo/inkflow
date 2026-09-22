@@ -4,20 +4,23 @@ import { useActionState, useState } from "react";
 import { AlertCircle, Eye, EyeOff, LogIn, Mail, Lock } from "lucide-react";
 import { login, type LoginState } from "./actions";
 import { Button } from "@/components/ui/button";
-import { Field, Input } from "@/components/ui/field";
+import { CheckboxField, Field, Input } from "@/components/ui/field";
 
-export function LoginForm() {
+export function LoginForm({ suite }: { suite?: string }) {
   const [state, formAction, pending] = useActionState<LoginState, FormData>(login, {});
   const [showPassword, setShowPassword] = useState(false);
 
   return (
     <form action={formAction} className="mt-8 space-y-4">
+      {suite && <input type="hidden" name="suite" value={suite} />}
+
       <Field label="Adresse e-mail" htmlFor="email">
         <Input
           id="email"
           name="email"
           type="email"
-          autoComplete="email"
+          inputMode="email"
+          autoComplete="username"
           required
           autoFocus
           placeholder="tatoueur@monsalon.ch"
@@ -35,12 +38,12 @@ export function LoginForm() {
             required
             placeholder="••••••••"
             icon={<Lock />}
-            className="pr-10"
+            className="pr-11"
           />
           <button
             type="button"
             onClick={() => setShowPassword((value) => !value)}
-            className="absolute right-0 top-0 h-10 w-10 grid place-items-center text-[var(--fg-subtle)] hover:text-[var(--fg)] transition-colors rounded-r-[var(--radius-sm)]"
+            className="absolute right-0 top-0 h-11 w-11 grid place-items-center text-[var(--fg-subtle)] hover:text-[var(--fg)] transition-colors rounded-r-[var(--radius-sm)]"
             aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
             tabIndex={-1}
           >
@@ -48,6 +51,16 @@ export function LoginForm() {
           </button>
         </div>
       </Field>
+
+      <div className="pt-1">
+        <CheckboxField
+          id="persistent"
+          name="persistent"
+          defaultChecked
+          label="Rester connecté"
+          hint="Garde la session ouverte 90 jours, renouvelée à chaque utilisation. À décocher sur un appareil partagé."
+        />
+      </div>
 
       {state.error && (
         <div

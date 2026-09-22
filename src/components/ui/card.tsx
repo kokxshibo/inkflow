@@ -82,7 +82,7 @@ export function StatCard({
   sublabel?: React.ReactNode;
   icon?: React.ReactNode;
   trend?: { value: number; label?: string };
-  tone?: "neutral" | "accent" | "success" | "warning" | "danger";
+  tone?: "neutral" | "accent" | "success" | "warning" | "danger" | "info";
   className?: string;
 }) {
   const toneRing = {
@@ -91,6 +91,7 @@ export function StatCard({
     success: "text-[var(--success)] bg-[var(--success-soft)]",
     warning: "text-[var(--warning)] bg-[var(--warning-soft)]",
     danger: "text-[var(--danger)] bg-[var(--danger-soft)]",
+    info: "text-[var(--info)] bg-[var(--info-soft)]",
   }[tone];
 
   return (

@@ -1,44 +1,24 @@
 import "server-only";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { SignJWT, jwtVerify } from "jose";
 import bcrypt from "bcryptjs";
 import { db } from "./db";
+import {
+  SESSION_COOKIE,
+  cookieOptions,
+  signSession,
+  verifySession,
+  type SessionPayload,
+} from "./session";
 
-const SESSION_COOKIE = "inkflow_session";
-const MAX_AGE = 60 * 60 * 24 * 30; // 30 jours
+export type { SessionPayload };
 
-function secret() {
-  const value = process.env.AUTH_SECRET;
-  if (!value || value.length < 32) {
-    throw new Error(
-      "AUTH_SECRET manquant ou trop court (32 caractères minimum). Vérifie ton fichier .env",
-    );
-  }
-  return new TextEncoder().encode(value);
-}
-
-export interface SessionPayload {
-  userId: string;
-  email: string;
-  name: string;
-}
-
-export async function createSession(payload: SessionPayload) {
-  const token = await new SignJWT({ ...payload })
-    .setProtectedHeader({ alg: "HS256" })
-    .setIssuedAt()
-    .setExpirationTime(`${MAX_AGE}s`)
-    .sign(secret());
-
+export async function createSession(
+  payload: Omit<SessionPayload, "iat">,
+): Promise<void> {
+  const token = await signSession(payload);
   const store = await cookies();
-  store.set(SESSION_COOKIE, token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: MAX_AGE,
-    path: "/",
-  });
+  store.set(SESSION_COOKIE, token, cookieOptions(payload.persistent));
 }
 
 export async function destroySession() {
@@ -48,22 +28,14 @@ export async function destroySession() {
 
 export async function getSession(): Promise<SessionPayload | null> {
   const store = await cookies();
-  const token = store.get(SESSION_COOKIE)?.value;
-  if (!token) return null;
-
-  try {
-    const { payload } = await jwtVerify(token, secret());
-    return {
-      userId: payload.userId as string,
-      email: payload.email as string,
-      name: payload.name as string,
-    };
-  } catch {
-    return null;
-  }
+  return verifySession(store.get(SESSION_COOKIE)?.value);
 }
 
-/** À appeler dans toute page ou action protégée. */
+/**
+ * À appeler dans toute page ou action protégée.
+ * Le middleware filtre déjà les accès ; cette fonction reste la garde de
+ * dernier recours côté serveur, notamment pour les Server Actions.
+ */
 export async function requireSession(): Promise<SessionPayload> {
   const session = await getSession();
   if (!session) redirect("/login");
@@ -75,8 +47,12 @@ export async function verifyCredentials(email: string, password: string) {
     where: { email: email.toLowerCase().trim() },
   });
   if (!user) {
-    // Comparaison factice : évite de révéler l'existence d'un compte par le temps de réponse.
-    await bcrypt.compare(password, "$2a$10$invalidinvalidinvalidinvalidinvalidinvalidinvalidinv");
+    // Comparaison factice : évite de révéler l'existence d'un compte
+    // par la différence de temps de réponse.
+    await bcrypt.compare(
+      password,
+      "$2a$10$invalidinvalidinvalidinvalidinvalidinvalidinvalidinv",
+    );
     return null;
   }
   const valid = await bcrypt.compare(password, user.passwordHash);
@@ -85,4 +61,9 @@ export async function verifyCredentials(email: string, password: string) {
 
 export function hashPassword(password: string) {
   return bcrypt.hash(password, 10);
+}
+
+/** Aucun compte en base : l'application n'a pas encore été configurée. */
+export async function needsSetup(): Promise<boolean> {
+  return (await db.user.count()) === 0;
 }

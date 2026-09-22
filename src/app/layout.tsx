@@ -11,6 +11,31 @@ export const metadata: Metadata = {
   description:
     "Clients, projets, rendez-vous, devis et factures en CHF avec QR-facture suisse.",
   robots: { index: false, follow: false },
+  applicationName: "InkFlow",
+  appleWebApp: {
+    capable: true,
+    title: "InkFlow",
+    // Le contenu passe sous la barre d'état : les encoches sont gérées en CSS.
+    statusBarStyle: "black-translucent",
+  },
+  formatDetection: {
+    // Empêche iOS de transformer les numéros de facture en liens téléphone.
+    telephone: false,
+    date: false,
+    address: false,
+  },
+  icons: {
+    icon: [
+      { url: "/favicon.png", sizes: "64x64", type: "image/png" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
+  },
+  manifest: "/manifest.webmanifest",
+  other: {
+    "mobile-web-app-capable": "yes",
+  },
 };
 
 export const viewport: Viewport = {
@@ -21,6 +46,9 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
+  // Indispensable sur iPhone : le contenu s'étend sous les encoches,
+  // et env(safe-area-inset-*) devient exploitable.
+  viewportFit: "cover",
 };
 
 /**
@@ -31,8 +59,7 @@ const themeScript = `
 (function(){
   try {
     var stored = localStorage.getItem('inkflow-theme');
-    var theme = stored || 'dark';
-    document.documentElement.setAttribute('data-theme', theme);
+    document.documentElement.setAttribute('data-theme', stored || 'dark');
   } catch (e) {
     document.documentElement.setAttribute('data-theme', 'dark');
   }
@@ -54,7 +81,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-dvh antialiased">
         <TooltipProvider delayDuration={250}>{children}</TooltipProvider>
         <Toaster
-          position="bottom-right"
+          position="top-center"
           closeButton
           richColors={false}
           toastOptions={{
@@ -67,6 +94,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               fontSize: "13px",
             },
           }}
+          // Sous l'encoche sur iPhone, en haut de l'écran ailleurs.
+          offset="calc(env(safe-area-inset-top, 0px) + 12px)"
         />
       </body>
     </html>

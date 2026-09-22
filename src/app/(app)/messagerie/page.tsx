@@ -37,9 +37,9 @@ export default async function MessagesPage({
       ...(query
         ? {
             OR: [
-              { subject: { contains: query } },
-              { body: { contains: query } },
-              { toAddr: { contains: query } },
+              { subject: { contains: query, mode: 'insensitive' } },
+              { body: { contains: query, mode: 'insensitive' } },
+              { toAddr: { contains: query, mode: 'insensitive' } },
             ],
           }
         : {}),

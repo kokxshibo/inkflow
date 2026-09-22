@@ -1,6 +1,7 @@
 // Schema InkFlow — gestion de salon de tatouage (Suisse, CHF)
-// SQLite en local. Pour passer sur PostgreSQL (VPS) : changer provider = "postgresql".
-// Aucun `enum` Prisma n'est utilise volontairement -> portabilite SQLite <-> PostgreSQL immediate.
+// PostgreSQL (Neon sur Vercel, ou tout Postgres sur un VPS).
+// Aucun `enum` Prisma n'est utilise volontairement : les statuts sont des chaines
+// validees cote application, ce qui evite les migrations a chaque nouveau statut.
 // Tous les montants sont stockes en CENTIMES (Int), jamais en float.
 
 generator client {
@@ -8,8 +9,9 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 /// Reglages du salon — ligne unique (id = 1)
@@ -79,7 +81,7 @@ model Counter {
 }
 
 model Client {
-  id        String  @id @default(cuid())
+  id        String    @id @default(cuid())
   firstName String
   lastName  String
   email     String?
@@ -103,16 +105,16 @@ model Client {
   // --- Donnees sensibles (nLPD art. 5) ---
   allergies        String?
   medications      String?
-  conditions       String  @default("[]") // JSON string[] : diabetes, epilepsy, hemophilia, heart, immuno, skin
-  pregnant         Boolean @default(false)
-  keloidProne      Boolean @default(false)
+  conditions       String    @default("[]") // JSON string[] : diabetes, epilepsy, hemophilia, heart, immuno, skin
+  pregnant         Boolean   @default(false)
+  keloidProne      Boolean   @default(false)
   skinType         String? // I..VI (Fitzpatrick)
   medicalNotes     String?
   medicalUpdatedAt DateTime?
 
   // --- Consentements ---
-  imageConsent     Boolean @default(false)
-  marketingConsent Boolean @default(false)
+  imageConsent     Boolean   @default(false)
+  marketingConsent Boolean   @default(false)
   dataConsentAt    DateTime?
 
   noShowCount Int      @default(0)
@@ -188,7 +190,7 @@ model Appointment {
   status  String   @default("confirmed") // draft | confirmed | done | cancelled | no_show
 
   depositRequired Int? // centimes
-  depositPaid     Boolean @default(false)
+  depositPaid     Boolean   @default(false)
   actualMinutes   Int?
   notes           String?
   reminderSentAt  DateTime?
@@ -212,12 +214,12 @@ model Quote {
   issuedAt   DateTime @default(now())
   validUntil DateTime
 
-  subtotal       Int   @default(0) // centimes, avant remise
-  discount       Int   @default(0)
-  vatRate        Float @default(0)
-  vatAmount      Int   @default(0)
-  total          Int   @default(0)
-  depositAmount  Int   @default(0)
+  subtotal      Int   @default(0) // centimes, avant remise
+  discount      Int   @default(0)
+  vatRate       Float @default(0)
+  vatAmount     Int   @default(0)
+  total         Int   @default(0)
+  depositAmount Int   @default(0)
 
   notes String?
   terms String?
@@ -281,7 +283,7 @@ model Invoice {
   terms       String?
   publicToken String  @unique
 
-  remindersSent Int @default(0)
+  remindersSent  Int       @default(0)
   lastReminderAt DateTime?
 
   createdAt DateTime @default(now())
@@ -366,7 +368,7 @@ model Message {
 
 /// Demandes recues via le formulaire public (remplace les DM Instagram)
 model ProjectRequest {
-  id        String  @id @default(cuid())
+  id        String    @id @default(cuid())
   firstName String
   lastName  String
   email     String
@@ -374,26 +376,26 @@ model ProjectRequest {
   instagram String?
   birthDate DateTime?
 
-  description String
-  bodyZone    String?
-  sizeCm      String?
-  colorMode   String  @default("blackgrey")
-  style       String?
-  budget      String?
+  description  String
+  bodyZone     String?
+  sizeCm       String?
+  colorMode    String  @default("blackgrey")
+  style        String?
+  budget       String?
   availability String?
 
-  isAdult           Boolean @default(false)
+  isAdult              Boolean @default(false)
   hasContraindications Boolean @default(false)
-  contraindications String?
-  referenceUrls     String  @default("[]") // JSON string[]
-  consentGiven      Boolean @default(false)
+  contraindications    String?
+  referenceUrls        String  @default("[]") // JSON string[]
+  consentGiven         Boolean @default(false)
 
-  status    String   @default("new") // new | reviewing | converted | declined
+  status    String    @default("new") // new | reviewing | converted | declined
   clientId  String?
-  client    Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  client    Client?   @relation(fields: [clientId], references: [id], onDelete: SetNull)
   projectId String?
   handledAt DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   @@index([status])
 }
@@ -407,4 +409,145 @@ model ActivityLog {
   createdAt DateTime @default(now())
 
   @@index([createdAt])
+}
+
+/**
+ * ═══════════════════════════════════════════════════════════════════
+ * DEPENSES — factures fournisseurs scannees (encre, materiel, loyer…)
+ * ═══════════════════════════════════════════════════════════════════
+ */
+
+model Expense {
+  id       String  @id @default(cuid())
+  supplier String
+  category String  @default("supplies") // voir EXPENSE_CATEGORY
+  label    String?
+  notes    String?
+
+  // Montants en centimes. amountGross = TTC, ce qui est reellement paye.
+  amountGross   Int     @default(0)
+  vatRate       Float   @default(0)
+  vatAmount     Int     @default(0)
+  amountNet     Int     @default(0)
+  /// Impot prealable recuperable (uniquement si le salon est assujetti a la TVA)
+  vatDeductible Boolean @default(false)
+
+  issuedAt DateTime  @default(now())
+  dueAt    DateTime?
+  paidAt   DateTime?
+  status   String    @default("to_pay") // to_pay | paid | overdue | disputed
+
+  paymentMethod String? // twint | card | bank_transfer | qr_bill | cash | direct_debit
+  invoiceNumber String?
+
+  // Donnees extraites de la QR-facture du fournisseur
+  creditorIban  String?
+  creditorName  String?
+  qrReference   String?
+  scannedFromQr Boolean @default(false)
+
+  attachmentUrl  String?
+  attachmentName String?
+  attachmentType String?
+
+  /// Charge recurrente (loyer, abonnement) : mois entre deux echeances
+  recurrenceMonths Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([issuedAt])
+  @@index([category])
+}
+
+/**
+ * ═══════════════════════════════════════════════════════════════════
+ * GESTION PERSONNELLE — AVS, assurance maladie, impots
+ * ═══════════════════════════════════════════════════════════════════
+ */
+
+/// Parametres personnels — ligne unique (id = 1)
+model PersonalSettings {
+  id Int @id @default(1)
+
+  // ── AVS / AI / APG (independant) ──
+  avsNumber         String? // 756.XXXX.XXXX.XX
+  avsCaisse         String? // Caisse de compensation
+  avsMemberNo       String?
+  /// Taux maximal independant : AVS 8.1 % + AI 1.4 % + APG 0.5 % = 10.0 %
+  avsRate           Float   @default(10.0)
+  /// Frais d'administration de la caisse, en % des cotisations (0.5 a 5 %)
+  avsAdminRate      Float   @default(3.0)
+  avsDeclaredIncome Int     @default(0) // revenu annonce, en centimes
+
+  // ── Assurance maladie (LAMal) ──
+  lamalInsurer        String?
+  lamalPolicyNo       String?
+  lamalPremium        Int     @default(0) // prime mensuelle, en centimes
+  lamalFranchise      Int     @default(250000) // CHF 2'500 par defaut
+  lamalAccident       Boolean @default(true) // couverture accident incluse
+  lamalSubsidy        Int     @default(0) // subside cantonal mensuel, en centimes
+  /// Plafond annuel de quote-part : CHF 700 pour un adulte
+  lamalCoinsuranceCap Int     @default(70000)
+
+  // ── Impots ──
+  taxCanton  String?
+  taxCommune String?
+  taxNumber  String?
+  /// Taux d'imposition global estime (federal + cantonal + communal)
+  taxRate    Float   @default(20.0)
+
+  // ── Prevoyance ──
+  pillar3aInsurer String?
+  pillar3aCeiling Int     @default(0) // plafond annuel, en centimes
+
+  // ── Provisions automatiques sur le CA encaisse ──
+  provisionAvsPercent Float @default(10.0)
+  provisionTaxPercent Float @default(20.0)
+
+  updatedAt DateTime @updatedAt
+}
+
+/// Echeance personnelle ou professionnelle a payer (acompte AVS, prime, impots…)
+model Obligation {
+  id         String    @id @default(cuid())
+  kind       String // avs | lamal | tax | pillar3a | insurance | other
+  label      String
+  /// Periode concernee : "2026", "2026-T1", "2026-03"
+  period     String?
+  amount     Int       @default(0) // centimes
+  dueAt      DateTime
+  paidAt     DateTime?
+  paidAmount Int       @default(0)
+  status     String    @default("planned") // planned | due | paid | late | cancelled
+  reference  String?
+  notes      String?
+
+  /// Genere automatiquement par un echeancier
+  autoGenerated Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([kind])
+  @@index([dueAt])
+  @@index([status])
+}
+
+/// Frais medicaux, pour suivre la franchise et la quote-part LAMal
+model HealthCost {
+  id                   String   @id @default(cuid())
+  date                 DateTime @default(now())
+  provider             String
+  description          String?
+  amount               Int      @default(0) // centimes
+  reimbursed           Int      @default(0) // rembourse par l'assurance
+  /// Part imputee sur la franchise (le reste releve de la quote-part de 10 %)
+  appliedToFranchise   Int      @default(0)
+  appliedToCoinsurance Int      @default(0)
+  attachmentUrl        String?
+  createdAt            DateTime @default(now())
+
+  @@index([date])
 }

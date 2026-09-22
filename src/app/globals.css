@@ -304,3 +304,102 @@ body {
   .no-print { display: none !important; }
   body { background: #fff; color: #000; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   iOS / mobile
+   ═══════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Encoches et barre gestuelle de l'iPhone */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  /* Hauteur de la barre d'onglets basse */
+  --tabbar-height: 56px;
+}
+
+/* Évite le zoom automatique de Safari iOS à la mise au point d'un champ :
+   il se déclenche dès que la police descend sous 16 px. */
+@media (max-width: 767px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Empêche le rebond élastique de la page tout en gardant le défilement
+   interne des listes et des fenêtres. */
+html,
+body {
+  overscroll-behavior-y: none;
+}
+
+body {
+  /* Défilement inertiel natif sur iOS */
+  -webkit-overflow-scrolling: touch;
+  /* Pas de sélection accidentelle lors d'un appui long sur l'interface */
+  -webkit-touch-callout: none;
+}
+
+/* Le texte et les champs restent sélectionnables */
+input,
+textarea,
+[contenteditable],
+p,
+span,
+td,
+li {
+  -webkit-touch-callout: default;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Cibles tactiles : 44 px minimum, recommandation Apple */
+@media (pointer: coarse) {
+  button,
+  a[role="button"],
+  [role="tab"],
+  label[for] {
+    min-height: 44px;
+  }
+  button.compact-touch,
+  a.compact-touch {
+    min-height: 0;
+  }
+}
+
+.safe-top { padding-top: var(--safe-top); }
+.safe-bottom { padding-bottom: var(--safe-bottom); }
+.safe-x {
+  padding-left: var(--safe-left);
+  padding-right: var(--safe-right);
+}
+
+/* Les barres d'action collantes doivent rester au-dessus de la barre
+   gestuelle, et au-dessus de la barre d'onglets sur mobile. */
+.sticky-actions {
+  padding-bottom: calc(0.875rem + var(--safe-bottom));
+}
+@media (max-width: 1023px) {
+  .sticky-actions {
+    bottom: var(--tabbar-height);
+  }
+  /* Espace réservé pour que rien ne passe sous la barre d'onglets */
+  .has-tabbar {
+    padding-bottom: calc(var(--tabbar-height) + var(--safe-bottom) + 1rem);
+  }
+}
+
+/* Mode application installée (écran d'accueil iOS) */
+@media (display-mode: standalone) {
+  /* Pas de surlignage de lien, on est dans une app */
+  a { -webkit-tap-highlight-color: transparent; }
+}
+
+/* Masque la barre d'onglets quand le clavier virtuel est ouvert :
+   sinon elle flotte au milieu de l'écran sur iOS. */
+@media (max-width: 1023px) and (max-height: 450px) {
+  .tabbar-hide-on-keyboard { display: none; }
+}
