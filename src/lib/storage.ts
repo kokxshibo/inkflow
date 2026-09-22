@@ -83,6 +83,13 @@ export async function storeFile(
     };
   }
 
+  // Sur Vercel, le disque est en lecture seule : sans Blob, rien ne peut être écrit.
+  if (process.env.VERCEL) {
+    throw new UploadError(
+      "Le stockage de fichiers n'est pas encore activé. Dans Vercel : Storage → Blob → connecter au projet, puis redéployer.",
+    );
+  }
+
   // Repli local : public/uploads/<folder>/<filename>
   const directory = path.join(process.cwd(), "public", "uploads", folder);
   await mkdir(directory, { recursive: true });
