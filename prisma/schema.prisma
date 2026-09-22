@@ -1,0 +1,410 @@
+// Schema InkFlow — gestion de salon de tatouage (Suisse, CHF)
+// SQLite en local. Pour passer sur PostgreSQL (VPS) : changer provider = "postgresql".
+// Aucun `enum` Prisma n'est utilise volontairement -> portabilite SQLite <-> PostgreSQL immediate.
+// Tous les montants sont stockes en CENTIMES (Int), jamais en float.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// Reglages du salon — ligne unique (id = 1)
+model Settings {
+  id          Int     @id @default(1)
+  studioName  String  @default("Mon salon")
+  ownerName   String  @default("")
+  tagline     String?
+  addressLine String  @default("")
+  postalCode  String  @default("")
+  city        String  @default("")
+  canton      String?
+  country     String  @default("CH")
+  email       String  @default("")
+  phone       String?
+  website     String?
+  instagram   String?
+
+  // Identite d'entreprise suisse
+  ide       String? // CHE-123.456.789
+  legalForm String  @default("individual") // individual | sarl | sa
+
+  // TVA suisse — taux normal 8.1 %, seuil d'assujettissement CHF 100'000
+  vatEnabled   Boolean @default(false)
+  vatRate      Float   @default(8.1)
+  vatMethod    String  @default("effective") // effective | tdfn
+  vatThreshold Int     @default(10000000) // centimes = CHF 100'000
+
+  // Coordonnees bancaires pour la QR-facture
+  bankName String?
+  iban     String?
+  qrIban   String?
+
+  // Facturation
+  currency          String @default("CHF")
+  quotePrefix       String @default("DEV")
+  invoicePrefix     String @default("FAC")
+  quoteValidityDays Int    @default(30)
+  paymentTermDays   Int    @default(30)
+  depositPercent    Int    @default(30)
+  hourlyRate        Int    @default(15000) // centimes / heure
+  minimumPrice      Int    @default(15000)
+
+  // Communication
+  emailSignature  String?
+  googleReviewUrl String?
+  aftercareUrl    String?
+  defaultLocale   String  @default("fr")
+
+  updatedAt DateTime @updatedAt
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         String   @default("owner")
+  avatarUrl    String?
+  createdAt    DateTime @default(now())
+}
+
+/// Compteurs de numerotation sequentielle (obligation legale : aucun trou)
+model Counter {
+  id    String @id // ex : "quote-2026"
+  value Int    @default(0)
+}
+
+model Client {
+  id        String  @id @default(cuid())
+  firstName String
+  lastName  String
+  email     String?
+  phone     String?
+  instagram String?
+  birthDate DateTime?
+
+  addressLine String?
+  postalCode  String?
+  city        String?
+  country     String  @default("CH")
+  language    String  @default("fr") // fr | de | en
+
+  source String? // instagram | word_of_mouth | google | walk_in | referral | convention | website | other
+  status String  @default("prospect") // prospect | active | inactive | archived | blocked
+  tags   String  @default("[]") // JSON string[]
+  notes  String?
+
+  identityVerifiedAt DateTime?
+
+  // --- Donnees sensibles (nLPD art. 5) ---
+  allergies        String?
+  medications      String?
+  conditions       String  @default("[]") // JSON string[] : diabetes, epilepsy, hemophilia, heart, immuno, skin
+  pregnant         Boolean @default(false)
+  keloidProne      Boolean @default(false)
+  skinType         String? // I..VI (Fitzpatrick)
+  medicalNotes     String?
+  medicalUpdatedAt DateTime?
+
+  // --- Consentements ---
+  imageConsent     Boolean @default(false)
+  marketingConsent Boolean @default(false)
+  dataConsentAt    DateTime?
+
+  noShowCount Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  projects     Project[]
+  appointments Appointment[]
+  quotes       Quote[]
+  invoices     Invoice[]
+  messages     Message[]
+  requests     ProjectRequest[]
+
+  @@index([lastName, firstName])
+  @@index([status])
+}
+
+model Project {
+  id       String @id @default(cuid())
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String?
+  bodyZone    String? // avant_bras_g, dos, cuisse_d, ...
+  widthCm     Float?
+  heightCm    Float?
+  style       String? // realisme | old_school | blackwork | fine_line | japonais | lettrage | ornemental | geometrique | autre
+  colorMode   String  @default("blackgrey") // color | blackgrey | dotwork
+  kind        String  @default("new") // new | addition | coverup | touchup | rework
+  status      String  @default("idea") // idea | quoted | accepted | deposit_paid | in_progress | healing | touchup | done | cancelled
+
+  estimatedSessions Int  @default(1)
+  estimatedMinutes  Int?
+  estimatedPrice    Int? // centimes
+  finalPrice        Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  images       ProjectImage[]
+  appointments Appointment[]
+  quotes       Quote[]
+  invoices     Invoice[]
+
+  @@index([clientId])
+  @@index([status])
+}
+
+model ProjectImage {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  url       String
+  kind      String   @default("reference") // reference | design | stencil | before | during | after | healed
+  caption   String?
+  createdAt DateTime @default(now())
+
+  @@index([projectId])
+}
+
+model Appointment {
+  id        String   @id @default(cuid())
+  clientId  String?
+  client    Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  title   String
+  type    String   @default("session") // consultation | session | touchup | stencil | blocked | other
+  startAt DateTime
+  endAt   DateTime
+  status  String   @default("confirmed") // draft | confirmed | done | cancelled | no_show
+
+  depositRequired Int? // centimes
+  depositPaid     Boolean @default(false)
+  actualMinutes   Int?
+  notes           String?
+  reminderSentAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([startAt])
+  @@index([clientId])
+}
+
+model Quote {
+  id        String   @id @default(cuid())
+  number    String   @unique
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  status     String   @default("draft") // draft | sent | accepted | refused | expired
+  issuedAt   DateTime @default(now())
+  validUntil DateTime
+
+  subtotal       Int   @default(0) // centimes, avant remise
+  discount       Int   @default(0)
+  vatRate        Float @default(0)
+  vatAmount      Int   @default(0)
+  total          Int   @default(0)
+  depositAmount  Int   @default(0)
+
+  notes String?
+  terms String?
+
+  sentAt         DateTime?
+  acceptedAt     DateTime?
+  acceptanceName String?
+  acceptanceIp   String?
+  publicToken    String    @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items    QuoteItem[]
+  invoices Invoice[]
+
+  @@index([clientId])
+  @@index([status])
+}
+
+model QuoteItem {
+  id          String  @id @default(cuid())
+  quoteId     String
+  quote       Quote   @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  label       String
+  description String?
+  quantity    Float   @default(1)
+  unitPrice   Int     @default(0) // centimes
+  position    Int     @default(0)
+
+  @@index([quoteId])
+}
+
+model Invoice {
+  id        String   @id @default(cuid())
+  number    String   @unique
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  quoteId   String?
+  quote     Quote?   @relation(fields: [quoteId], references: [id], onDelete: SetNull)
+
+  kind   String @default("full") // deposit | balance | full | credit_note
+  status String @default("draft") // draft | sent | partial | paid | overdue | cancelled
+
+  issuedAt DateTime  @default(now())
+  dueAt    DateTime
+  sentAt   DateTime?
+  paidAt   DateTime?
+
+  subtotal   Int   @default(0)
+  discount   Int   @default(0)
+  vatRate    Float @default(0)
+  vatAmount  Int   @default(0)
+  total      Int   @default(0)
+  amountPaid Int   @default(0)
+
+  qrReference String? // reference QRR si QR-IBAN
+  notes       String?
+  terms       String?
+  publicToken String  @unique
+
+  remindersSent Int @default(0)
+  lastReminderAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items    InvoiceItem[]
+  payments Payment[]
+
+  @@index([clientId])
+  @@index([status])
+}
+
+model InvoiceItem {
+  id          String  @id @default(cuid())
+  invoiceId   String
+  invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  label       String
+  description String?
+  quantity    Float   @default(1)
+  unitPrice   Int     @default(0)
+  position    Int     @default(0)
+
+  @@index([invoiceId])
+}
+
+model Payment {
+  id        String   @id @default(cuid())
+  invoiceId String
+  invoice   Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  amount    Int // centimes
+  method    String   @default("twint") // twint | cash | card | bank_transfer | qr_bill | other
+  paidAt    DateTime @default(now())
+  reference String?
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@index([invoiceId])
+}
+
+model EmailTemplate {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  name        String
+  category    String   @default("general") // quote | invoice | appointment | aftercare | general
+  subject     String
+  body        String
+  description String?
+  isSystem    Boolean  @default(false)
+  updatedAt   DateTime @updatedAt
+}
+
+model Message {
+  id       String  @id @default(cuid())
+  clientId String?
+  client   Client? @relation(fields: [clientId], references: [id], onDelete: SetNull)
+
+  direction String // out | in
+  subject   String
+  body      String
+  fromAddr  String
+  toAddr    String
+  status    String  @default("draft") // draft | queued | sent | failed | received | simulated
+  error     String?
+
+  threadKey String?
+  messageId String?
+  inReplyTo String?
+
+  relatedQuoteId   String?
+  relatedInvoiceId String?
+  attachments      String  @default("[]") // JSON
+
+  needsReply Boolean   @default(false)
+  readAt     DateTime?
+  sentAt     DateTime?
+  receivedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([clientId])
+  @@index([status])
+}
+
+/// Demandes recues via le formulaire public (remplace les DM Instagram)
+model ProjectRequest {
+  id        String  @id @default(cuid())
+  firstName String
+  lastName  String
+  email     String
+  phone     String?
+  instagram String?
+  birthDate DateTime?
+
+  description String
+  bodyZone    String?
+  sizeCm      String?
+  colorMode   String  @default("blackgrey")
+  style       String?
+  budget      String?
+  availability String?
+
+  isAdult           Boolean @default(false)
+  hasContraindications Boolean @default(false)
+  contraindications String?
+  referenceUrls     String  @default("[]") // JSON string[]
+  consentGiven      Boolean @default(false)
+
+  status    String   @default("new") // new | reviewing | converted | declined
+  clientId  String?
+  client    Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  projectId String?
+  handledAt DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([status])
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  type      String
+  entity    String?
+  entityId  String?
+  message   String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
