@@ -1,19 +1,25 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { getSettings } from "@/lib/db";
+import { isDatabaseReady } from "@/lib/health";
 import { RequestForm } from "./request-form";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const settings = await getSettings();
+  const studioName = (await isDatabaseReady())
+    ? (await getSettings()).studioName
+    : "InkFlow";
   return {
-    title: `Demander un tatouage — ${settings.studioName}`,
-    description: `Décris ton projet de tatouage et envoie tes références à ${settings.studioName}.`,
+    title: `Demander un tatouage — ${studioName}`,
+    description: `Décris ton projet de tatouage et envoie tes références à ${studioName}.`,
     robots: { index: true, follow: true },
   };
 }
 
 export default async function PublicRequestPage() {
+  if (!(await isDatabaseReady())) redirect("/installation");
+
   const settings = await getSettings();
 
   return (

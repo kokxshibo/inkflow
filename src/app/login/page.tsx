@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { getSession, needsSetup } from "@/lib/auth";
+import { isDatabaseReady, areMigrationsApplied } from "@/lib/health";
 import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = { title: "Connexion" };
@@ -11,6 +12,11 @@ export default async function LoginPage({
 }: {
   searchParams: Promise<{ suite?: string }>;
 }) {
+  // Base absente ou migrations non appliquees : on guide plutot que d'echouer.
+  if (!(await isDatabaseReady()) || !(await areMigrationsApplied())) {
+    redirect("/installation");
+  }
+
   // Premiere utilisation : aucun compte n'existe encore.
   if (await needsSetup()) redirect("/bienvenue");
 

@@ -18,6 +18,7 @@ import {
 /** Chemins accessibles sans session. */
 const PUBLIC_PREFIXES = [
   "/login",
+  "/installation",
   "/bienvenue",
   "/demande",
   "/devis-public",

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { needsSetup } from "@/lib/auth";
+import { isDatabaseReady, areMigrationsApplied } from "@/lib/health";
 import { SetupForm } from "./setup-form";
 
 export const metadata: Metadata = {
@@ -10,6 +11,10 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function WelcomePage() {
+  if (!(await isDatabaseReady()) || !(await areMigrationsApplied())) {
+    redirect("/installation");
+  }
+
   // Route fermée dès qu'un compte existe.
   if (!(await needsSetup())) redirect("/login");
 
