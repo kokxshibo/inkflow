@@ -74,9 +74,11 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Toutes les routes sauf les fichiers statiques, les images optimisées,
-     * les icônes générées et les fichiers téléversés.
+     * Toutes les routes sauf les ressources statiques : fichiers Next, images
+     * téléversées, et tout fichier reconnu à son extension (icônes, manifeste…).
+     * Sans cela, un visiteur non connecté verrait ces fichiers redirigés vers
+     * la page de connexion.
      */
-    "/((?!_next/static|_next/image|uploads|favicon.ico|icon|apple-icon|manifest.webmanifest|robots.txt).*)",
+    "/((?!_next/static|_next/image|uploads/|.*\\.(?:png|jpe?g|gif|webp|avif|svg|ico|txt|xml|webmanifest|woff2?)$).*)",
   ],
 };

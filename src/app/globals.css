@@ -147,10 +147,15 @@ body {
   color: var(--fg);
 }
 
-:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-  border-radius: var(--radius-xs);
+/* Contour de focus par défaut, dans la couche « base » : les composants qui
+   dessinent leur propre anneau (champs, boutons) peuvent ainsi le désactiver
+   avec focus:outline-none. Hors couche, cette règle écrasait tout et
+   produisait un double anneau sur chaque champ. */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
 }
 
 /* Chiffres alignés : indispensable pour les colonnes de montants */
@@ -215,6 +220,20 @@ body {
 .animate-slide-up { animation: slide-up 0.35s var(--ease-out-quint) both; }
 .animate-scale-in { animation: scale-in 0.2s var(--ease-out-quint) both; }
 .animate-pulse-ring { animation: pulse-ring 2s ease-out infinite; }
+
+/* Passage d'une étape à l'autre dans un assistant : entrée seulement.
+   Sans phase de sortie, l'étape suivante s'affiche immédiatement, même si
+   le navigateur suspend les animations. */
+@keyframes step-forward {
+  from { opacity: 0; transform: translateX(24px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes step-back {
+  from { opacity: 0; transform: translateX(-24px); }
+  to { opacity: 1; transform: none; }
+}
+.animate-step-forward { animation: step-forward 0.3s var(--ease-out-quint) both; }
+.animate-step-back { animation: step-back 0.3s var(--ease-out-quint) both; }
 
 /* Décalage progressif pour les listes : effet cascade */
 .stagger > * {
@@ -360,8 +379,7 @@ li {
 @media (pointer: coarse) {
   button,
   a[role="button"],
-  [role="tab"],
-  label[for] {
+  [role="tab"] {
     min-height: 44px;
   }
   button.compact-touch,
@@ -384,7 +402,8 @@ li {
 }
 @media (max-width: 1023px) {
   .sticky-actions {
-    bottom: var(--tabbar-height);
+    bottom: calc(var(--tabbar-height) + var(--safe-bottom));
+    padding-bottom: 0.875rem;
   }
   /* Espace réservé pour que rien ne passe sous la barre d'onglets */
   .has-tabbar {

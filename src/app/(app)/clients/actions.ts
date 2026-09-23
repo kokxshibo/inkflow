@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import type { Prisma } from "@prisma/client";
 import { db, logActivity } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
 
@@ -69,7 +70,7 @@ function buildData(
   return {
     firstName: input.firstName,
     lastName: input.lastName,
-    email: input.email,
+    email: input.email?.toLowerCase() ?? null,
     phone: input.phone,
     instagram: input.instagram?.replace(/^@/, "") ?? null,
     birthDate: input.birthDate ? new Date(input.birthDate) : null,
@@ -112,12 +113,16 @@ export async function createClient(
   const conditions = formData.getAll("conditions").map(String);
   const hasMedical =
     Boolean(parsed.data.allergies || parsed.data.medications || parsed.data.medicalNotes) ||
-    conditions.length > 0;
+    conditions.length > 0 ||
+    parsed.data.pregnant ||
+    parsed.data.keloidProne;
+  // Question posée et réponse « rien à signaler » : c'est aussi une information datée.
+  const medicalReviewed = formData.get("medicalReviewed") === "on";
 
   const client = await db.client.create({
     data: {
       ...buildData(parsed.data, conditions),
-      medicalUpdatedAt: hasMedical ? new Date() : null,
+      medicalUpdatedAt: hasMedical || medicalReviewed ? new Date() : null,
       dataConsentAt: new Date(),
     },
   });
@@ -215,4 +220,89 @@ export async function exportClientData(id: string) {
   });
   await logActivity("client.export", "Export des données (nLPD)", "client", id);
   return JSON.stringify(client, null, 2);
+}
+
+/* ─────────────────────────── Doublons ─────────────────────────── */
+
+export interface SimilarClient {
+  id: string;
+  name: string;
+  detail: string;
+  reasons: string[];
+}
+
+/**
+ * Cherche des fiches qui ressemblent au client en cours de saisie :
+ * même e-mail, même nom complet ou même numéro de téléphone.
+ * Appelée à la fin de la première étape de l'assistant de création.
+ */
+export async function findSimilarClients(input: {
+  firstName: string;
+  lastName: string;
+  email?: string;
+  phone?: string;
+}): Promise<SimilarClient[]> {
+  await requireSession();
+
+  const email = input.email?.trim().toLowerCase();
+  const firstName = input.firstName.trim();
+  const lastName = input.lastName.trim();
+
+  const criteria: Prisma.ClientWhereInput[] = [];
+  if (email) criteria.push({ email: { equals: email, mode: "insensitive" } });
+  if (firstName && lastName) {
+    criteria.push({
+      AND: [
+        { firstName: { equals: firstName, mode: "insensitive" } },
+        { lastName: { equals: lastName, mode: "insensitive" } },
+      ],
+    });
+  }
+
+  const select = {
+    id: true,
+    firstName: true,
+    lastName: true,
+    email: true,
+    phone: true,
+  } as const;
+
+  const matches = criteria.length
+    ? await db.client.findMany({ where: { OR: criteria }, select, take: 10 })
+    : [];
+
+  // Les numéros sont enregistrés avec espaces : on compare les chiffres seuls,
+  // sur les 9 derniers pour ignorer l'indicatif (+41, 0041, 0…).
+  const phoneTail = (input.phone ?? "").replace(/\D/g, "").slice(-9);
+  const byPhone =
+    phoneTail.length === 9
+      ? (await db.client.findMany({ where: { phone: { not: null } }, select })).filter(
+          (client) => (client.phone ?? "").replace(/\D/g, "").endsWith(phoneTail),
+        )
+      : [];
+
+  const merged = new Map<string, SimilarClient>();
+  for (const client of [...matches, ...byPhone]) {
+    const reasons: string[] = [];
+    if (email && client.email?.toLowerCase() === email) reasons.push("même e-mail");
+    if (
+      client.firstName.toLowerCase() === firstName.toLowerCase() &&
+      client.lastName.toLowerCase() === lastName.toLowerCase()
+    ) {
+      reasons.push("même nom");
+    }
+    if (phoneTail.length === 9 && (client.phone ?? "").replace(/\D/g, "").endsWith(phoneTail)) {
+      reasons.push("même téléphone");
+    }
+    if (reasons.length === 0) continue;
+
+    merged.set(client.id, {
+      id: client.id,
+      name: `${client.firstName} ${client.lastName}`,
+      detail: client.email ?? client.phone ?? "Sans coordonnées",
+      reasons,
+    });
+  }
+
+  return Array.from(merged.values()).slice(0, 5);
 }

@@ -289,7 +289,18 @@ export default async function ClientDetailPage({
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {!hasMedicalInfo ? (
+              {!hasMedicalInfo && client.medicalUpdatedAt ? (
+                <p className="flex items-center gap-2 text-[13px] text-[var(--success)] py-2">
+                  <ShieldCheck className="size-4 shrink-0" />
+                  <span>
+                    Rien à signaler
+                    <span className="text-[var(--fg-subtle)]">
+                      {" "}
+                      · questionnaire du {formatDate(client.medicalUpdatedAt)}
+                    </span>
+                  </span>
+                </p>
+              ) : !hasMedicalInfo ? (
                 <p className="text-[13px] text-[var(--fg-subtle)] py-2">
                   Aucune information renseignée.{" "}
                   <Link
