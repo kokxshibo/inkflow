@@ -166,7 +166,7 @@ export const QUOTE_STATUS: Option[] = [
 
 export const INVOICE_STATUS: Option[] = [
   { value: "draft", label: "Brouillon", tone: "neutral" },
-  { value: "sent", label: "Envoyée", tone: "info" },
+  { value: "sent", label: "Émise", tone: "info" },
   { value: "partial", label: "Partiellement payée", tone: "warning" },
   { value: "paid", label: "Payée", tone: "success" },
   { value: "overdue", label: "En retard", tone: "danger" },

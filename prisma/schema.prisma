@@ -194,11 +194,16 @@ model Appointment {
   notes           String?
   reminderSentAt  DateTime?
 
+  /// Facture sur laquelle cette séance a été facturée (évite de la proposer deux fois)
+  invoiceId String?
+  invoice   Invoice? @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([startAt])
   @@index([clientId])
+  @@index([invoiceId])
 }
 
 model Quote {
@@ -288,8 +293,9 @@ model Invoice {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  items    InvoiceItem[]
-  payments Payment[]
+  items        InvoiceItem[]
+  payments     Payment[]
+  appointments Appointment[]
 
   @@index([clientId])
   @@index([status])

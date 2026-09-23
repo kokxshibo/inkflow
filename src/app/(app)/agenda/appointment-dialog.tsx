@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useActionState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { AlertCircle, Save, Trash2, CheckCircle2, UserX } from "lucide-react";
 import {
@@ -66,6 +67,7 @@ export function AppointmentDialog({
     saveAppointment,
     {},
   );
+  const router = useRouter();
   const [confirmDelete, setConfirmDelete] = React.useState(false);
   const [, startTransition] = React.useTransition();
 
@@ -102,14 +104,25 @@ export function AppointmentDialog({
   }
 
   function quickStatus(status: string) {
-    if (!appointment?.id) return;
+    const id = appointment?.id;
+    if (!id) return;
     startTransition(async () => {
-      await setAppointmentStatus(appointment.id!, status);
-      toast.success(
-        status === "no_show"
-          ? "Marqué absent — le compteur du client a été incrémenté"
-          : "Rendez-vous marqué comme effectué",
-      );
+      const { billable } = await setAppointmentStatus(id, status);
+      if (status === "no_show") {
+        toast.success("Marqué absent — le compteur du client a été incrémenté");
+      } else if (billable) {
+        // Le montant est déjà calculé : un geste suffit pour facturer la séance.
+        toast.success("Séance effectuée", {
+          description: "Elle est prête à être facturée.",
+          duration: 10000,
+          action: {
+            label: "Facturer",
+            onClick: () => router.push(`/factures/nouvelle?facturer=session:${id}`),
+          },
+        });
+      } else {
+        toast.success("Rendez-vous marqué comme effectué");
+      }
       onOpenChange(false);
     });
   }

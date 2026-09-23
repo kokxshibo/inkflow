@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { ChevronLeft, Clock, CheckCircle2, Send, Link2 } from "lucide-react";
 import { db, getSettings } from "@/lib/db";
+import { getBillingSuggestions } from "@/lib/billing";
 import { formatCHF } from "@/lib/money";
 import { formatDate, formatDateTime, fullName, initials } from "@/lib/utils";
 import { QUOTE_STATUS } from "@/lib/constants";
@@ -11,6 +12,7 @@ import { StatusBadge } from "@/components/ui/badge";
 import { Avatar, DataRow, PageHeader } from "@/components/ui/misc";
 import { DocumentPreview } from "@/components/document-preview";
 import { QuoteActions } from "./quote-actions";
+import { CreatedNotice } from "@/components/created-notice";
 
 export const dynamic = "force-dynamic";
 
@@ -26,10 +28,13 @@ export async function generateMetadata({
 
 export default async function QuoteDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ cree?: string }>;
 }) {
   const { id } = await params;
+  const { cree } = await searchParams;
 
   const [quote, settings] = await Promise.all([
     db.quote.findUnique({
@@ -48,6 +53,23 @@ export default async function QuoteDetailPage({
 
   const expired = quote.status === "sent" && quote.validUntil < new Date();
   const publicUrl = `${process.env.APP_URL ?? ""}/devis-public/${quote.publicToken}`;
+
+  // Ce qui reste à facturer sur ce devis : l'acompte d'abord, puis le reste.
+  let billingHref: string | null = null;
+  if (quote.status === "accepted") {
+    const suggestions = await getBillingSuggestions(
+      settings,
+      quote.projectId ? { projectId: quote.projectId } : { clientId: quote.clientId },
+    );
+    const own = suggestions.find(
+      (suggestion) =>
+        suggestion.key === `deposit:${quote.id}` || suggestion.key === `quote:${quote.id}`,
+    );
+    if (own) billingHref = `/factures/nouvelle?facturer=${own.key}`;
+    else if (quote.projectId && suggestions.length > 0) {
+      billingHref = `/factures/nouvelle?projet=${quote.projectId}`;
+    }
+  }
 
   return (
     <>
@@ -72,8 +94,9 @@ export default async function QuoteDetailPage({
           </span>
         }
         description={`${formatCHF(quote.total)} · ${fullName(quote.client)}`}
-        actions={<QuoteActions quote={quote} publicUrl={publicUrl} />}
+        actions={<QuoteActions quote={quote} publicUrl={publicUrl} billingHref={billingHref} />}
       />
+      {cree && <CreatedNotice message={`Devis ${quote.number} créé`} />}
 
       {/* Fil d'avancement */}
       <Card className="mb-6">

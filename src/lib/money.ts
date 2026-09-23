@@ -41,7 +41,9 @@ export function parseCHF(input: string | number | null | undefined): number {
 
   const cleaned = input
     .replace(/chf/gi, "")
-    .replace(/['\s  ]/g, "")
+    // Séparateurs de milliers : apostrophe droite ou typographique (’, selon le
+    // navigateur), espaces insécables.
+    .replace(/['\u2018\u2019\u02BC\s\u00A0\u202F]/g, "")
     .replace(",", ".")
     .trim();
 
@@ -106,6 +108,21 @@ export function computeTotals(
     vatAmount,
     total: taxableBase + vatAmount,
   };
+}
+
+/**
+ * Décompose un prix payé par le client (TTC) en base et TVA, de sorte que le
+ * total retombe exactement sur le montant saisi — au centime près.
+ *
+ * C'est le sens naturel pour un tatoueur : il annonce un prix final, pas un
+ * prix hors taxe auquel s'ajouterait la TVA.
+ */
+export function fromGross(amount: number, vatRate: number) {
+  if (vatRate <= 0) {
+    return { subtotal: amount, vatAmount: 0, total: amount };
+  }
+  const subtotal = Math.round(amount / (1 + vatRate / 100));
+  return { subtotal, vatAmount: amount - subtotal, total: amount };
 }
 
 /** Montant de l'acompte à partir d'un pourcentage, arrondi à 5 centimes */

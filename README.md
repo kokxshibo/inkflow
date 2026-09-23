@@ -76,10 +76,21 @@ courante, acomptes liés aux créneaux, statut « provisoire » tant que l'acomp
 n'est pas encaissé, marquage des absences.
 
 ### Devis
-Numérotation séquentielle `DEV-2026-0001`, acompte arrondi à 0.05 CHF, PDF,
-**lien public d'acceptation en ligne** horodaté, conversion en facture.
+**Devis express** : on choisit le projet, le prix est proposé (séances × heures ×
+tarif horaire, prix minimum respecté), on ajuste si besoin, puis « Créer » ou
+« Créer et envoyer ». Numérotation séquentielle `DEV-2026-0001`, acompte arrondi
+à 0.05 CHF, PDF, **lien public d'acceptation en ligne** horodaté. Le formulaire
+détaillé (plusieurs lignes, remise) reste accessible.
 
 ### Factures clients
+**Facturation automatique** : l'écran « Que veux-tu facturer ? » liste ce qui est
+dû, montant déjà calculé et expliqué — acompte d'un devis accepté, séance
+effectuée (reste du prix convenu réparti sur les séances restantes, ou durée ×
+tarif horaire), solde du projet. On confirme, on indique si c'est déjà encaissé,
+c'est émis. Rien n'est facturé deux fois : chaque séance est rattachée à sa
+facture. « Facturer » apparaît aussi dans l'agenda (séance marquée effectuée),
+sur la fiche projet, sur le devis accepté et sur le tableau de bord.
+
 Numérotation séquentielle, **QR-facture suisse** conforme SIX sur le PDF,
 encaissements (TWINT, espèces, carte, virement), suivi des impayés.
 Une facture émise est **figée** : la correction passe par une note de crédit

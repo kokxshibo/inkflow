@@ -5,8 +5,8 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db, getSettings, logActivity, nextNumber } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
-import { computeTotals, computeDeposit, parseCHF, buildQrReference } from "@/lib/money";
-import { addDays, randomToken } from "@/lib/utils";
+import { computeTotals, computeDeposit, parseCHF } from "@/lib/money";
+import { randomToken } from "@/lib/utils";
 
 const optionalString = z
   .string()
@@ -187,84 +187,4 @@ export async function deleteQuote(id: string) {
 
   revalidatePath("/devis");
   redirect("/devis");
-}
-
-/**
- * Convertit un devis en facture.
- * `kind` vaut "deposit" pour ne facturer que l'acompte, sinon la totalité.
- */
-export async function convertQuoteToInvoice(id: string, kind: "full" | "deposit") {
-  await requireSession();
-
-  const quote = await db.quote.findUnique({ where: { id }, include: { items: true } });
-  if (!quote) throw new Error("Devis introuvable");
-
-  const settings = await getSettings();
-  const number = await nextNumber("invoice", settings.invoicePrefix);
-  const issuedAt = new Date();
-  const dueAt = addDays(issuedAt, settings.paymentTermDays);
-
-  const vatRate = settings.vatEnabled ? settings.vatRate : 0;
-
-  let lines: LineInput[];
-  if (kind === "deposit") {
-    lines = [
-      {
-        label: `Acompte sur devis ${quote.number}`,
-        description: quote.items.map((item) => item.label).join(", ") || null,
-        quantity: 1,
-        // L'acompte est stocké TTC : on retire la TVA pour obtenir la base HT.
-        unitPrice:
-          vatRate > 0
-            ? Math.round(quote.depositAmount / (1 + vatRate / 100))
-            : quote.depositAmount,
-      },
-    ];
-  } else {
-    lines = quote.items.map((item) => ({
-      label: item.label,
-      description: item.description,
-      quantity: item.quantity,
-      unitPrice: item.unitPrice,
-    }));
-  }
-
-  const discount = kind === "deposit" ? 0 : quote.discount;
-  const totals = computeTotals(lines, discount, vatRate);
-
-  const invoice = await db.invoice.create({
-    data: {
-      number,
-      clientId: quote.clientId,
-      projectId: quote.projectId,
-      quoteId: quote.id,
-      kind: kind === "deposit" ? "deposit" : "full",
-      status: "draft",
-      issuedAt,
-      dueAt,
-      subtotal: totals.subtotal,
-      discount: totals.discount,
-      vatRate: totals.vatRate,
-      vatAmount: totals.vatAmount,
-      total: totals.total,
-      qrReference: settings.qrIban ? buildQrReference(number) : null,
-      notes: quote.notes,
-      terms: quote.terms,
-      publicToken: randomToken(28),
-      items: {
-        create: lines.map((line, index) => ({ ...line, position: index })),
-      },
-    },
-  });
-
-  await logActivity(
-    "invoice.create",
-    `Facture ${number} créée depuis le devis ${quote.number}`,
-    "invoice",
-    invoice.id,
-  );
-
-  revalidatePath("/factures");
-  revalidatePath(`/devis/${id}`);
-  redirect(`/factures/${invoice.id}`);
 }

@@ -12,7 +12,8 @@ import {
   Layers,
   ShieldAlert,
 } from "lucide-react";
-import { db } from "@/lib/db";
+import { db, getSettings } from "@/lib/db";
+import { getBillingSuggestions } from "@/lib/billing";
 import { formatCHF } from "@/lib/money";
 import { formatDate, formatDateTime, fullName, initials, isMinor } from "@/lib/utils";
 import {
@@ -33,6 +34,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, DataRow, PageHeader } from "@/components/ui/misc";
 import { ProjectGallery } from "./project-gallery";
 import { ProjectActions } from "./project-actions";
+import { BillingCard } from "@/components/billing-card";
 
 export const dynamic = "force-dynamic";
 
@@ -65,6 +67,8 @@ export default async function ProjectDetailPage({
   });
 
   if (!project) notFound();
+
+  const toBill = await getBillingSuggestions(await getSettings(), { projectId: project.id });
 
   const minor = isMinor(project.client.birthDate);
   const sessionsDone = project.appointments.filter((a) => a.status === "done").length;
@@ -173,6 +177,8 @@ export default async function ProjectDetailPage({
               )}
             </CardContent>
           </Card>
+
+          <BillingCard suggestions={toBill} moreHref={`/factures/nouvelle?projet=${project.id}`} />
 
           {/* Documents */}
           <div className="grid gap-6 sm:grid-cols-2">

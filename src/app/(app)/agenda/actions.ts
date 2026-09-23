@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { db, logActivity } from "@/lib/db";
+import { db, getSettings, logActivity } from "@/lib/db";
+import { getBillingSuggestions } from "@/lib/billing";
 import { requireSession } from "@/lib/auth";
 import { parseCHF } from "@/lib/money";
 
@@ -115,7 +116,10 @@ export async function saveAppointment(
   return { success: true };
 }
 
-export async function setAppointmentStatus(id: string, status: string) {
+export async function setAppointmentStatus(
+  id: string,
+  status: string,
+): Promise<{ billable: boolean }> {
   await requireSession();
 
   const appointment = await db.appointment.update({
@@ -136,6 +140,12 @@ export async function setAppointmentStatus(id: string, status: string) {
   revalidatePath("/agenda");
   revalidatePath("/tableau-de-bord");
   if (appointment.clientId) revalidatePath(`/clients/${appointment.clientId}`);
+  if (appointment.projectId) revalidatePath(`/projets/${appointment.projectId}`);
+
+  // Une séance effectuée et pas encore facturée peut l'être tout de suite.
+  if (status !== "done" || appointment.type !== "session") return { billable: false };
+  const suggestions = await getBillingSuggestions(await getSettings(), { key: `session:${id}` });
+  return { billable: suggestions.length > 0 };
 }
 
 export async function deleteAppointment(id: string) {

@@ -16,7 +16,7 @@ import {
   Copy,
   Mail,
 } from "lucide-react";
-import { deleteQuote, sendQuote, setQuoteStatus, convertQuoteToInvoice } from "../actions";
+import { deleteQuote, sendQuote, setQuoteStatus } from "../actions";
 import { Button } from "@/components/ui/button";
 import {
   ConfirmDialog,
@@ -31,9 +31,12 @@ import {
 export function QuoteActions({
   quote,
   publicUrl,
+  billingHref,
 }: {
   quote: Quote;
   publicUrl: string;
+  /** Facturation préremplie de ce devis, s'il reste quelque chose à facturer */
+  billingHref: string | null;
 }) {
   const [confirmDelete, setConfirmDelete] = React.useState(false);
   const [pending, startTransition] = React.useTransition();
@@ -71,25 +74,22 @@ export function QuoteActions({
         </Button>
 
         {quote.status === "draft" ? (
-          <Button
-            variant="primary"
-            size="sm"
-            loading={pending}
-            onClick={() => run(() => sendQuote(quote.id), "Devis marqué comme envoyé")}
-          >
-            <Send />
-            <span className="hidden sm:inline">Marquer envoyé</span>
+          // L'envoi passe par la messagerie : modèle prérempli et PDF joint.
+          <Button asChild variant="primary" size="sm">
+            <Link href={`/messagerie/nouveau?client=${quote.clientId}&devis=${quote.id}`}>
+              <Send />
+              <span className="hidden sm:inline">Envoyer</span>
+            </Link>
           </Button>
         ) : quote.status === "accepted" ? (
-          <Button
-            variant="primary"
-            size="sm"
-            loading={pending}
-            onClick={() => run(() => convertQuoteToInvoice(quote.id, "full"), "Facture créée")}
-          >
-            <ReceiptText />
-            <span className="hidden sm:inline">Facturer</span>
-          </Button>
+          billingHref && (
+            <Button asChild variant="primary" size="sm">
+              <Link href={billingHref}>
+                <ReceiptText />
+                <span className="hidden sm:inline">Facturer</span>
+              </Link>
+            </Button>
+          )
         ) : (
           <Button
             variant="primary"
@@ -146,24 +146,16 @@ export function QuoteActions({
               <XCircle /> Refusé
             </DropdownItem>
 
-            <DropdownSeparator />
-            <DropdownLabel>Facturer</DropdownLabel>
-            <DropdownItem
-              onSelect={() =>
-                run(() => convertQuoteToInvoice(quote.id, "deposit"), "Facture d'acompte créée")
-              }
-              disabled={pending}
-            >
-              <ReceiptText /> Facture d&apos;acompte
-            </DropdownItem>
-            <DropdownItem
-              onSelect={() =>
-                run(() => convertQuoteToInvoice(quote.id, "full"), "Facture créée")
-              }
-              disabled={pending}
-            >
-              <ReceiptText /> Facture complète
-            </DropdownItem>
+            {billingHref && (
+              <>
+                <DropdownSeparator />
+                <DropdownItem asChild>
+                  <Link href={billingHref}>
+                    <ReceiptText /> Facturer
+                  </Link>
+                </DropdownItem>
+              </>
+            )}
 
             {!locked && (
               <>

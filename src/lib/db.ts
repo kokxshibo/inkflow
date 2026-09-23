@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, type Prisma } from "@prisma/client";
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
@@ -28,11 +28,19 @@ export async function getPersonalSettings() {
  * Numérotation séquentielle sans trou (obligation légale).
  * Format : PREFIX-ANNEE-0001
  */
-export async function nextNumber(kind: "quote" | "invoice", prefix: string) {
+export async function nextNumber(
+  kind: "quote" | "invoice",
+  prefix: string,
+  /**
+   * Passer la transaction en cours : si la création du document échoue, le
+   * compteur est annulé avec elle et aucun numéro n'est perdu.
+   */
+  client: Prisma.TransactionClient | PrismaClient = db,
+) {
   const year = new Date().getFullYear();
   const id = `${kind}-${year}`;
 
-  const counter = await db.counter.upsert({
+  const counter = await client.counter.upsert({
     where: { id },
     create: { id, value: 1 },
     update: { value: { increment: 1 } },

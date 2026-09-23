@@ -37,6 +37,9 @@ import { Badge, StatusBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, EmptyState, PageHeader, Progress } from "@/components/ui/misc";
 
+import { getBillingSuggestions } from "@/lib/billing";
+import { BillingCard } from "@/components/billing-card";
+
 export const metadata: Metadata = { title: "Tableau de bord" };
 export const dynamic = "force-dynamic";
 
@@ -59,6 +62,7 @@ export default async function DashboardPage() {
     activeProjects,
     recentClients,
     clientCount,
+    toBill,
   ] = await Promise.all([
     db.appointment.findMany({
       where: {
@@ -104,6 +108,7 @@ export default async function DashboardPage() {
       include: { _count: { select: { projects: true } } },
     }),
     db.client.count(),
+    getBillingSuggestions(settings),
   ]);
 
   const monthRevenue = monthPayments._sum.amount ?? 0;
@@ -312,6 +317,8 @@ export default async function DashboardPage() {
 
         {/* Colonne latérale */}
         <div className="space-y-6">
+          <BillingCard suggestions={toBill} showClient />
+
           {/* Demandes */}
           <Card>
             <CardHeader>

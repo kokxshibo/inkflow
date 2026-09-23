@@ -12,6 +12,7 @@ import { Avatar, DataRow, PageHeader, Progress } from "@/components/ui/misc";
 import { DocumentPreview } from "@/components/document-preview";
 import { InvoiceActions } from "./invoice-actions";
 import { PaymentPanel } from "./payment-panel";
+import { CreatedNotice } from "@/components/created-notice";
 
 export const dynamic = "force-dynamic";
 
@@ -27,10 +28,13 @@ export async function generateMetadata({
 
 export default async function InvoiceDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ creee?: string }>;
 }) {
   const { id } = await params;
+  const { creee } = await searchParams;
 
   const [invoice, settings] = await Promise.all([
     db.invoice.findUnique({
@@ -88,6 +92,18 @@ export default async function InvoiceDetailPage({
         description={`${formatCHF(invoice.total)} · ${fullName(invoice.client)}`}
         actions={<InvoiceActions invoice={invoice} />}
       />
+      {creee && (
+        <CreatedNotice
+          message={`Facture ${invoice.number} émise`}
+          description={
+            invoice.status === "paid"
+              ? "Paiement enregistré."
+              : invoice.client.email
+                ? "Envoie-la au client avec le bouton « Envoyer »."
+                : "Transmets-la au client : PDF ou lien à copier."
+          }
+        />
+      )}
 
       {/* Alertes */}
       <div className="space-y-2.5 mb-6">
