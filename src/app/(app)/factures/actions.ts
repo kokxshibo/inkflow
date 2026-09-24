@@ -158,7 +158,8 @@ const paymentSchema = z.object({
   method: z.string().default("twint"),
   paidAt: z.string().min(1),
   reference: optionalString,
-  note: optionalString,
+  // Le formulaire d'encaissement n'envoie pas de note : la clé peut être absente.
+  note: optionalString.optional(),
 });
 
 export async function recordPayment(
