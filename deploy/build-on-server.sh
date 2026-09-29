@@ -54,7 +54,8 @@ systemctl restart inkflow
 
 echo "▸ Vérification"
 for _ in $(seq 1 30); do
-    if curl -fsS -o /dev/null http://127.0.0.1:3010/login; then
+    # Silencieux : les premières tentatives échouent tant que Next démarre.
+    if curl -fs -o /dev/null http://127.0.0.1:3010/login; then
         # On ne garde que les deux dernières versions (retour arrière possible).
         ls -1dt "$APP"/releases/* | tail -n +3 | xargs -r rm -rf
         systemctl start inkflow-sync.timer

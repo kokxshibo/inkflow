@@ -60,7 +60,9 @@ install -m 644 "$HERE/inkflow.service" "$HERE/inkflow-sync.service" "$HERE/inkfl
     "$HERE/inkflow-backup.service" "$HERE/inkflow-backup.timer" /etc/systemd/system/
 install -m 755 "$HERE/inkflow-backup" /usr/local/bin/inkflow-backup
 systemctl daemon-reload
-systemctl enable inkflow.service inkflow-sync.timer inkflow-backup.timer
+systemctl enable inkflow.service inkflow-sync.timer
+# La relève démarre au premier déploiement ; la sauvegarde, tout de suite.
+systemctl enable --now inkflow-backup.timer
 
 # ── nginx + HTTPS ────────────────────────────────────────────────────────
 SITE="/etc/nginx/sites-available/$DOMAIN"
