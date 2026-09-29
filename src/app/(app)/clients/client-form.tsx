@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 import Link from "next/link";
 import type { Client } from "@prisma/client";
 import {
@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/field";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/misc";
+import { useFormTabs } from "@/components/use-form-tabs";
 
 export function ClientForm({ client }: { client?: Client }) {
   const action = client ? updateClient : createClient;
@@ -40,6 +41,8 @@ export function ClientForm({ client }: { client?: Client }) {
     action,
     {},
   );
+  const formRef = useRef<HTMLFormElement>(null);
+  const { tab, setTab } = useFormTabs("identity", formRef, state);
 
   const [conditions, setConditions] = useState<string[]>(
     parseJsonArray(client?.conditions),
@@ -56,7 +59,7 @@ export function ClientForm({ client }: { client?: Client }) {
   }
 
   return (
-    <form action={formAction} className="space-y-6">
+    <form ref={formRef} action={formAction} className="space-y-6">
       {client && <input type="hidden" name="id" value={client.id} />}
       {conditions.map((condition) => (
         <input key={condition} type="hidden" name="conditions" value={condition} />
@@ -72,7 +75,7 @@ export function ClientForm({ client }: { client?: Client }) {
         </div>
       )}
 
-      <Tabs defaultValue="identity">
+      <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="w-full sm:w-auto overflow-x-auto">
           <TabsTrigger value="identity">
             <User />

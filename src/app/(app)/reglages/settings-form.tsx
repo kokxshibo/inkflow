@@ -20,6 +20,7 @@ import {
 import { saveSettings, changePassword, type SettingsState } from "./actions";
 import { formatCHF, isQrIban, isValidIban } from "@/lib/money";
 import { VAT_INFO } from "@/lib/constants";
+import { useFormTabs } from "@/components/use-form-tabs";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -55,6 +56,8 @@ export function SettingsForm({
     saveSettings,
     {},
   );
+  const formRef = React.useRef<HTMLFormElement>(null);
+  const { tab, setTab } = useFormTabs("studio", formRef, state);
   const [vatEnabled, setVatEnabled] = React.useState(settings.vatEnabled);
   const [iban, setIban] = React.useState(settings.iban ?? "");
   const [qrIban, setQrIban] = React.useState(settings.qrIban ?? "");
@@ -71,7 +74,7 @@ export function SettingsForm({
 
   return (
     <div className="space-y-6">
-      <form action={formAction} className="space-y-5">
+      <form ref={formRef} action={formAction} className="space-y-5">
         {state.error && (
           <div
             role="alert"
@@ -82,7 +85,7 @@ export function SettingsForm({
           </div>
         )}
 
-        <Tabs defaultValue="studio">
+        <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="w-full sm:w-auto overflow-x-auto">
             <TabsTrigger value="studio">
               <Building2 />
@@ -350,10 +353,13 @@ export function SettingsForm({
                     </p>
                   </div>
                 )}
-                {/* Le taux reste transmis même quand la TVA est désactivée,
-                    pour le retrouver tel quel en cas de réactivation. */}
+                {/* Le taux et la méthode restent transmis même quand la TVA est
+                    désactivée, pour les retrouver tels quels en cas de réactivation. */}
                 {!vatEnabled && (
-                  <input type="hidden" name="vatRate" value={String(settings.vatRate)} />
+                  <>
+                    <input type="hidden" name="vatRate" value={String(settings.vatRate)} />
+                    <input type="hidden" name="vatMethod" value={settings.vatMethod} />
+                  </>
                 )}
               </CardContent>
             </Card>

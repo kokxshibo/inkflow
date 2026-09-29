@@ -157,13 +157,24 @@ export const TabsTrigger = React.forwardRef<
 ));
 TabsTrigger.displayName = "TabsTrigger";
 
+/**
+ * Les panneaux inactifs restent montés, simplement masqués : dans un formulaire
+ * à onglets, chaque champ est ainsi envoyé quel que soit l'onglet affiché au
+ * moment d'enregistrer (Radix les retire du DOM par défaut).
+ */
 export const TabsContent = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.Content>
->(({ className, ...props }, ref) => (
+>(({ className, value, ...props }, ref) => (
   <TabsPrimitive.Content
     ref={ref}
-    className={cn("mt-5 focus-visible:outline-none animate-fade-in", className)}
+    value={value}
+    forceMount
+    data-tab={value}
+    className={cn(
+      "mt-5 focus-visible:outline-none animate-fade-in data-[state=inactive]:hidden",
+      className,
+    )}
     {...props}
   />
 ));

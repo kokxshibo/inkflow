@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/field";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/misc";
+import { useFormTabs } from "@/components/use-form-tabs";
 
 type SettingsWithFormatted = PersonalSettings & {
   avsDeclaredIncomeFormatted: string;
@@ -46,6 +47,8 @@ export function PersonalSettingsForm({
     savePersonalSettings,
     {},
   );
+  const formRef = React.useRef<HTMLFormElement>(null);
+  const { tab, setTab } = useFormTabs("avs", formRef);
 
   const [income, setIncome] = React.useState(settings.avsDeclaredIncomeFormatted);
   const [avsRate, setAvsRate] = React.useState(settings.avsRate);
@@ -62,7 +65,7 @@ export function PersonalSettingsForm({
   const adminFees = Math.round((contributions * adminRate) / 100);
 
   return (
-    <form action={formAction} className="space-y-5">
+    <form ref={formRef} action={formAction} className="space-y-5">
       {state.error && (
         <div
           role="alert"
@@ -73,7 +76,7 @@ export function PersonalSettingsForm({
         </div>
       )}
 
-      <Tabs defaultValue="avs">
+      <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="w-full sm:w-auto overflow-x-auto">
           <TabsTrigger value="avs">
             <Landmark />

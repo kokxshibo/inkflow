@@ -8,14 +8,25 @@
 
 export const CURRENCY = "CHF";
 
+/**
+ * Séparateur de milliers : selon la version d'ICU, Node et le navigateur
+ * rendent « ' » ou « ’ ». On impose l'apostrophe droite pour que le rendu
+ * serveur et le rendu client soient identiques (sinon erreur d'hydratation).
+ */
+function normalizeGrouping(formatted: string): string {
+  return formatted.replace(/[‘’ʼ]/g, "'");
+}
+
 /** Formate des centimes en CHF au format suisse : CHF 1'250.00 */
 export function formatCHF(cents: number, opts: { showCurrency?: boolean } = {}): string {
   const { showCurrency = true } = opts;
   const value = cents / 100;
-  const formatted = new Intl.NumberFormat("de-CH", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value);
+  const formatted = normalizeGrouping(
+    new Intl.NumberFormat("de-CH", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value),
+  );
   return showCurrency ? `CHF ${formatted}` : formatted;
 }
 
@@ -23,10 +34,12 @@ export function formatCHF(cents: number, opts: { showCurrency?: boolean } = {}):
 export function formatCHFCompact(cents: number): string {
   const value = cents / 100;
   if (Math.abs(value) >= 1000) {
-    return `CHF ${new Intl.NumberFormat("de-CH", {
-      notation: "compact",
-      maximumFractionDigits: 1,
-    }).format(value)}`;
+    return `CHF ${normalizeGrouping(
+      new Intl.NumberFormat("de-CH", {
+        notation: "compact",
+        maximumFractionDigits: 1,
+      }).format(value),
+    )}`;
   }
   return formatCHF(cents);
 }
