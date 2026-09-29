@@ -42,25 +42,25 @@ export const DEFAULT_KEYWORDS = [
   "piercing",
 ].join(", ");
 
+/**
+ * Message envoyé automatiquement : en français puis en anglais, avec un seul
+ * lien de demande à la fin (le formulaire propose aussi l'allemand).
+ */
+export const AUTO_REPLY_TEXT =
+  "Salut à toi, merci de me contacter et de l’intérêt que tu portes à mon travail. " +
+  "Afin de centraliser toutes les demandes de projet provenant de différentes plateformes, " +
+  "je t’incite à répondre au questionnaire en cliquant sur le lien ci-dessous. " +
+  "Je te répondrai dans les plus brefs délais ! Merci d’avance.\n\n" +
+  "Hi there, thank you for reaching out and for your interest in my work. " +
+  "To keep all project requests from the different platforms in one place, " +
+  "I invite you to fill in the questionnaire by clicking the link below. " +
+  "I’ll get back to you as soon as possible! Thanks in advance.\n\n" +
+  "👉 {{lien}}";
+
 export const DEFAULT_MESSAGES: Record<Channel, { subject: string | null; message: string }> = {
-  instagram: {
-    subject: null,
-    message:
-      "Salut {{prenom}} ! Merci pour ton message 🙏\n" +
-      "Pour que je puisse étudier ton projet correctement, remplis ce petit formulaire (2 minutes, tu peux y joindre tes images de référence) 👉 {{lien}}\n" +
-      "Je te réponds dès que possible !",
-  },
-  gmail: {
-    subject: null,
-    message:
-      "Bonjour {{prenom}},\n\n" +
-      "Merci pour ton message !\n\n" +
-      "Pour que je puisse étudier ton projet dans de bonnes conditions, peux-tu remplir ce court formulaire ? " +
-      "Ça prend 2 minutes et tu peux y joindre tes images de référence :\n" +
-      "{{lien}}\n\n" +
-      "Je reviens vers toi dès que possible.\n\n" +
-      "{{signature}}",
-  },
+  instagram: { subject: null, message: AUTO_REPLY_TEXT },
+  // Par e-mail, la signature suit le message, comme dans Gmail.
+  gmail: { subject: null, message: `${AUTO_REPLY_TEXT}\n\n{{signature}}` },
 };
 
 /** Ligne de réglages d'un canal, créée avec les valeurs par défaut si absente. */

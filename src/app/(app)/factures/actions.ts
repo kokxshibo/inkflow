@@ -115,7 +115,7 @@ export async function saveInvoice(
     ]);
     await logActivity("invoice.update", `Facture ${existing.number} mise à jour`, "invoice", id);
   } else {
-    const number = await nextNumber("invoice", settings.invoicePrefix);
+    const number = await nextNumber("invoice", settings.invoicePrefix, db, data.issuedAt);
     const created = await db.invoice.create({
       data: {
         ...data,

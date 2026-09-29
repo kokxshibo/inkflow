@@ -8,6 +8,7 @@ import { db, logActivity } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
 import { decryptSecret, encryptSecret } from "@/lib/crypto";
 import { connectGmail, syncGmail } from "@/lib/gmail";
+import { testGeminiKey } from "@/lib/gemini";
 import { INSTAGRAM_STATE_COOKIE, authorizeUrl } from "@/lib/instagram";
 import { getIntegration, parseKeywords } from "@/lib/leads";
 import { randomToken } from "@/lib/utils";
@@ -215,4 +216,42 @@ export async function disconnectInstagramAction() {
   });
   await logActivity("integration.instagram", "Instagram déconnecté");
   revalidatePath(PATH);
+}
+
+/* ─────────────────────── Scanner IA (Gemini) ─────────────────────── */
+
+export async function saveGeminiKeyAction(
+  _prev: ConnexionState,
+  formData: FormData,
+): Promise<ConnexionState> {
+  await requireSession();
+  const key = String(formData.get("geminiKey") ?? "").trim();
+  if (!/^[A-Za-z0-9_-]{20,}$/.test(key)) {
+    return { error: "Colle la clé API Gemini complète (elle commence en général par « AIza »)." };
+  }
+  try {
+    await testGeminiKey(key);
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Clé refusée par Gemini." };
+  }
+  await db.integration.upsert({
+    where: { channel: "gemini" },
+    create: { channel: "gemini", secret: encryptSecret(key), connectedAt: new Date() },
+    update: { secret: encryptSecret(key), connectedAt: new Date(), lastError: null },
+  });
+  await logActivity("integration.gemini", "Scanner IA (Gemini) activé");
+  revalidatePath(PATH);
+  revalidatePath("/depenses/scanner");
+  return { success: "Clé vérifiée : le scanner analysera désormais tes factures." };
+}
+
+export async function removeGeminiKeyAction() {
+  await requireSession();
+  await db.integration.updateMany({
+    where: { channel: "gemini" },
+    data: { secret: null, connectedAt: null },
+  });
+  await logActivity("integration.gemini", "Scanner IA (Gemini) désactivé");
+  revalidatePath(PATH);
+  revalidatePath("/depenses/scanner");
 }

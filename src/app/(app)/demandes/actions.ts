@@ -58,6 +58,7 @@ export async function convertRequest(id: string) {
         instagram: request.lead?.username ?? request.instagram?.replace(/^@/, "") ?? null,
         birthDate: request.birthDate,
         source: request.source === "instagram" ? "instagram" : "website",
+        language: request.language,
         status: "prospect",
         medicalNotes: request.hasContraindications ? request.contraindications : null,
         medicalUpdatedAt: request.hasContraindications ? new Date() : null,

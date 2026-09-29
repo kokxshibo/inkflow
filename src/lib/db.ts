@@ -36,8 +36,10 @@ export async function nextNumber(
    * compteur est annulé avec elle et aucun numéro n'est perdu.
    */
   client: Prisma.TransactionClient | PrismaClient = db,
+  /** Date du document : une facture datée d'une autre année prend le numéro de cette année-là. */
+  documentDate: Date = new Date(),
 ) {
-  const year = new Date().getFullYear();
+  const year = documentDate.getFullYear();
   const id = `${kind}-${year}`;
 
   const counter = await client.counter.upsert({

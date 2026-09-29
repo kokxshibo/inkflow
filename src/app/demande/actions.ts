@@ -6,6 +6,7 @@ import { db, getSettings, logActivity } from "@/lib/db";
 import { REF_COOKIE } from "@/lib/leads";
 import { storeBuffer } from "@/lib/storage";
 import { randomToken } from "@/lib/utils";
+import { dictionary, parseLang, type Lang } from "./i18n";
 
 const optionalString = z
   .string()
@@ -15,34 +16,31 @@ const optionalString = z
   // Champ absent du formulaire (masqué car sans objet) : même chose qu'un champ vide.
   .default(null);
 
-const requestSchema = z.object({
-  firstName: z.string().trim().min(1, "Ton prénom est requis"),
-  lastName: z.string().trim().min(1, "Ton nom est requis"),
-  email: z.string().trim().email("Adresse e-mail invalide"),
-  phone: optionalString,
-  instagram: optionalString,
-  birthDate: optionalString,
-  description: z
-    .string()
-    .trim()
-    .min(20, "Décris ton projet en quelques phrases (20 caractères minimum)"),
-  bodyZone: optionalString,
-  sizeCm: optionalString,
-  colorMode: z.string().default("blackgrey"),
-  style: optionalString,
-  budget: optionalString,
-  availability: optionalString,
-  isAdult: z.literal("on", {
-    errorMap: () => ({ message: "Tu dois être majeur·e pour te faire tatouer" }),
-  }),
-  consentGiven: z.literal("on", {
-    errorMap: () => ({ message: "Ton accord est nécessaire pour traiter ta demande" }),
-  }),
-  hasContraindications: z.coerce.boolean().default(false),
-  contraindications: optionalString,
-  // Champ piège anti-robot : doit rester vide
-  website: z.string().max(0).optional().or(z.literal("")),
-});
+/** Messages d'erreur dans la langue choisie sur le formulaire. */
+function requestSchema(lang: Lang) {
+  const errors = dictionary(lang).errors;
+  return z.object({
+    firstName: z.string().trim().min(1, errors.firstName),
+    lastName: z.string().trim().min(1, errors.lastName),
+    email: z.string().trim().email(errors.email),
+    phone: optionalString,
+    instagram: optionalString,
+    birthDate: optionalString,
+    description: z.string().trim().min(20, errors.description),
+    bodyZone: optionalString,
+    sizeCm: optionalString,
+    colorMode: z.string().default("blackgrey"),
+    style: optionalString,
+    budget: optionalString,
+    availability: optionalString,
+    isAdult: z.literal("on", { errorMap: () => ({ message: errors.isAdult }) }),
+    consentGiven: z.literal("on", { errorMap: () => ({ message: errors.consentGiven }) }),
+    hasContraindications: z.coerce.boolean().default(false),
+    contraindications: optionalString,
+    // Champ piège anti-robot : doit rester vide
+    website: z.string().max(0).optional().or(z.literal("")),
+  });
+}
 
 export interface RequestFormState {
   error?: string;
@@ -70,14 +68,15 @@ export async function submitRequest(
     hasContraindications: formData.get("hasContraindications") === "on",
   };
 
-  const parsed = requestSchema.safeParse(raw);
+  const lang = parseLang(formData.get("lang"));
+  const parsed = requestSchema(lang).safeParse(raw);
   if (!parsed.success) {
     const fieldErrors: Record<string, string> = {};
     for (const issue of parsed.error.issues) {
       const key = String(issue.path[0]);
       if (!fieldErrors[key]) fieldErrors[key] = issue.message;
     }
-    return { error: "Certains champs doivent être corrigés.", fieldErrors };
+    return { error: dictionary(lang).errors.general, fieldErrors };
   }
 
   const input = parsed.data;
@@ -133,6 +132,7 @@ export async function submitRequest(
       consentGiven: true,
       status: "new",
       source: lead ? lead.channel : "direct",
+      language: lang,
       leadId: lead?.id ?? null,
     },
   });

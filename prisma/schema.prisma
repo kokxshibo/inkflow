@@ -403,9 +403,10 @@ model ProjectRequest {
   createdAt DateTime  @default(now())
 
   // Provenance : lien perso envoyé en réponse à un message Instagram ou Gmail
-  source String  @default("direct") // direct | instagram | email
-  leadId String?
-  lead   Lead?   @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  source   String  @default("direct") // direct | instagram | email
+  language String  @default("fr") // langue choisie sur le formulaire : fr | de | en
+  leadId   String?
+  lead     Lead?   @relation(fields: [leadId], references: [id], onDelete: SetNull)
 
   @@index([status])
   @@index([leadId])
@@ -533,6 +534,9 @@ model Expense {
   attachmentUrl  String?
   attachmentName String?
   attachmentType String?
+
+  /// Version numérisée par l'IA (JSON : fournisseur, lignes, montants…), à côté du scan
+  scanData String?
 
   /// Charge recurrente (loyer, abonnement) : mois entre deux echeances
   recurrenceMonths Int?

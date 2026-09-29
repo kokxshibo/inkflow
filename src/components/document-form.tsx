@@ -10,6 +10,7 @@ import { cn, toDateInput } from "@/lib/utils";
 import { INVOICE_KIND } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Field, Input, MoneyInput, Select, Textarea } from "@/components/ui/field";
+import { DateInput } from "@/components/ui/date-input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export interface DocumentLine {
@@ -183,10 +184,9 @@ export function DocumentForm({
           </Field>
 
           <Field label="Date d'émission" htmlFor="issuedAt" required>
-            <Input
+            <DateInput
               id="issuedAt"
               name="issuedAt"
-              type="date"
               required
               defaultValue={toDateInput(defaults?.issuedAt) || today}
             />
@@ -199,10 +199,9 @@ export function DocumentForm({
               required
               hint="Au-delà, le devis expire automatiquement."
             >
-              <Input
+              <DateInput
                 id="validUntil"
                 name="validUntil"
-                type="date"
                 required
                 defaultValue={toDateInput(defaults?.validUntil) || defaultSecondDate}
               />
@@ -214,10 +213,9 @@ export function DocumentForm({
               required
               hint={`Délai usuel en Suisse : ${paymentTermDays} jours.`}
             >
-              <Input
+              <DateInput
                 id="dueAt"
                 name="dueAt"
-                type="date"
                 required
                 defaultValue={toDateInput(defaults?.dueAt) || defaultSecondDate}
               />

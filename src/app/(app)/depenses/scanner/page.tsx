@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
-import { getSettings } from "@/lib/db";
+import { db, getSettings } from "@/lib/db";
+import { decryptSecret } from "@/lib/crypto";
 import { PageHeader } from "@/components/ui/misc";
 import { ScanFlow } from "./scan-flow";
 
@@ -9,13 +10,21 @@ export const metadata: Metadata = { title: "Scanner une facture" };
 export const dynamic = "force-dynamic";
 
 export default async function ScanExpensePage() {
-  const settings = await getSettings();
+  const [settings, gemini] = await Promise.all([
+    getSettings(),
+    db.integration.findUnique({ where: { channel: "gemini" } }),
+  ]);
+  const aiEnabled = Boolean(decryptSecret(gemini?.secret));
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-6xl mx-auto">
       <PageHeader
         title="Scanner une facture"
-        description="Photographie la QR-facture : fournisseur, montant et référence se remplissent automatiquement."
+        description={
+          aiEnabled
+            ? "Scanne la facture : elle est redressée, lue par l'IA, et tu valides avant d'enregistrer."
+            : "Scanne la facture : elle est redressée et la QR-facture est lue ; tu valides avant d'enregistrer."
+        }
         breadcrumb={
           <Link
             href="/depenses"
@@ -26,7 +35,11 @@ export default async function ScanExpensePage() {
           </Link>
         }
       />
-      <ScanFlow vatEnabled={settings.vatEnabled} defaultVatRate={settings.vatRate} />
+      <ScanFlow
+        vatEnabled={settings.vatEnabled}
+        defaultVatRate={settings.vatRate}
+        aiEnabled={aiEnabled}
+      />
     </div>
   );
 }

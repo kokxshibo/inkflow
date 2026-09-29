@@ -21,6 +21,8 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge, StatusBadge } from "@/components/ui/badge";
 import { DataRow, PageHeader } from "@/components/ui/misc";
+import { ScanDigest } from "@/components/scan-digest";
+import type { ScanExtraction } from "@/lib/scan";
 import { ExpenseActions } from "./expense-actions";
 
 export const dynamic = "force-dynamic";
@@ -52,6 +54,15 @@ export default async function ExpenseDetailPage({
   const isOverdue =
     expense.status === "to_pay" && expense.dueAt !== null && expense.dueAt < now;
   const isImage = expense.attachmentType?.startsWith("image/");
+  // Version numérisée par l'IA, si la dépense vient du scanner.
+  const scan: ScanExtraction | null = (() => {
+    if (!expense.scanData) return null;
+    try {
+      return JSON.parse(expense.scanData) as ScanExtraction;
+    } catch {
+      return null;
+    }
+  })();
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -164,6 +175,20 @@ export default async function ExpenseDetailPage({
               )}
             </CardContent>
           </Card>
+
+          {scan && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Version numérisée</CardTitle>
+                <span className="text-[11px] text-[var(--fg-subtle)]">
+                  Lue le {formatDate(scan.analyzedAt)}
+                </span>
+              </CardHeader>
+              <CardContent>
+                <ScanDigest extraction={scan} />
+              </CardContent>
+            </Card>
+          )}
 
           {expense.notes && (
             <Card>

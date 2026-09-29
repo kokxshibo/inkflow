@@ -133,12 +133,15 @@ Une facture émise est **figée** : la correction passe par une note de crédit
 (conservation 10 ans, art. 958f CO).
 
 ### Dépenses et factures fournisseurs 📸
-**Photographie la QR-facture** : le créancier, l'IBAN, le montant, la référence
-QRR et, si le fournisseur les encode (Swico S1), le numéro de facture, la date
-et le taux de TVA sont extraits automatiquement.
+**Scanner de documents** : caméra avec cadre, détection automatique de la page,
+coins ajustables, redressement de la perspective et filtre couleur ou noir et
+blanc. La QR-facture est lue dans le navigateur (jsQR), puis **Gemini Flash**
+lit le document (fournisseur, dates, lignes, TVA, total). On vérifie la version
+numérisée à côté du scan, on corrige si besoin, puis « Valider et enregistrer ».
+Le scan reste joint à la dépense. Clé Gemini : Réglages → Connexions.
 
-Le décodage se fait **dans le navigateur** (jsQR) : la photo ne part sur le
-serveur qu'à l'enregistrement.
+Factures et dépenses se suivent **par semaine, mois, trimestre, année** ou sur
+une période choisie, avec graphique.
 
 Catégories adaptées au métier (encres, aiguilles, consommables, hygiène, loyer,
 assurances, formation, déchets…), suivi de l'impôt préalable si assujetti,

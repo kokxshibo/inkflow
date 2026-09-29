@@ -26,11 +26,12 @@ import {
   type QuickBillingState,
 } from "../billing-actions";
 import { formatCHF, fromGross, parseCHF, roundTo5Cents } from "@/lib/money";
-import { cn, initials } from "@/lib/utils";
+import { addDays, cn, initials, toDateInput } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ChoiceGroup } from "@/components/ui/choice";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Field, Input, MoneyInput, Select } from "@/components/ui/field";
+import { DateInput } from "@/components/ui/date-input";
 import { Avatar } from "@/components/ui/misc";
 import { useFirstError } from "@/components/use-first-error";
 
@@ -435,6 +436,79 @@ function PaymentQuestion({
   );
 }
 
+/* ─────────────────────────────── Dates ─────────────────────────────── */
+
+/** « AAAA-MM-JJ » + n jours, en date locale. */
+function shiftDay(day: string, days: number) {
+  const [year, month, date] = day.split("-").map(Number);
+  return toDateInput(addDays(new Date(year, month - 1, date), days));
+}
+
+/**
+ * Date de la facture et échéance, choisies dans le calendrier. L'échéance suit
+ * la date de la facture (délai des réglages) tant qu'on ne l'a pas changée.
+ */
+function InvoiceDates({
+  paid,
+  paymentTermDays,
+  errors,
+}: {
+  paid: "yes" | "no";
+  paymentTermDays: number;
+  errors?: Record<string, string>;
+}) {
+  const [issuedAt, setIssuedAt] = React.useState(() => toDateInput(new Date()));
+  const [dueAt, setDueAt] = React.useState(() =>
+    shiftDay(toDateInput(new Date()), paymentTermDays),
+  );
+  const [dueEdited, setDueEdited] = React.useState(false);
+
+  function changeIssuedAt(value: string) {
+    setIssuedAt(value);
+    if (value && !dueEdited) setDueAt(shiftDay(value, paymentTermDays));
+  }
+
+  return (
+    <div className="grid gap-4 grid-cols-1 min-[420px]:grid-cols-2">
+      <Field
+        label={paid === "yes" ? "Date de la facture et du paiement" : "Date de la facture"}
+        htmlFor="issuedAt"
+        error={errors?.issuedAt}
+      >
+        <DateInput
+          id="issuedAt"
+          name="issuedAt"
+          required
+          value={issuedAt}
+          onChange={(event) => changeIssuedAt(event.target.value)}
+          aria-invalid={Boolean(errors?.issuedAt) || undefined}
+        />
+      </Field>
+      {paid === "no" && (
+        <Field
+          label="Échéance"
+          htmlFor="dueAt"
+          error={errors?.dueAt}
+          hint={dueEdited ? undefined : `${paymentTermDays} jours après la facture`}
+        >
+          <DateInput
+            id="dueAt"
+            name="dueAt"
+            required
+            min={issuedAt || undefined}
+            value={dueAt}
+            onChange={(event) => {
+              setDueAt(event.target.value);
+              setDueEdited(true);
+            }}
+            aria-invalid={Boolean(errors?.dueAt) || undefined}
+          />
+        </Field>
+      )}
+    </div>
+  );
+}
+
 /* ─────────────────────── Récapitulatif et envoi ─────────────────────── */
 
 function IssueFooter({
@@ -569,6 +643,8 @@ function SuggestionDialog({
             onMethodChange={setMethod}
             paymentTermDays={paymentTermDays}
           />
+
+          <InvoiceDates paid={paid} paymentTermDays={paymentTermDays} errors={state.fieldErrors} />
         </div>
 
         <IssueFooter amount={amount} vatRate={vatRate} pending={pending} error={state.error} />
@@ -719,6 +795,8 @@ function QuickInvoiceDialog({
             onMethodChange={setMethod}
             paymentTermDays={paymentTermDays}
           />
+
+          <InvoiceDates paid={paid} paymentTermDays={paymentTermDays} errors={state.fieldErrors} />
         </div>
 
         <IssueFooter amount={amount} vatRate={vatRate} pending={pending} error={state.error} />

@@ -15,6 +15,7 @@ import { formatDate, formatRelative, initials, isMinor, age, parseJsonArray } fr
 import {
   ALL_BODY_ZONES,
   COLOR_MODE,
+  LANGUAGES,
   PROJECT_STYLE,
   REQUEST_STATUS,
   labelOf,
@@ -292,6 +293,7 @@ export default async function RequestDetailPage({
                     <span className="text-[var(--danger)]">Non déclaré majeur</span>
                   )}
                 </DataRow>
+                <DataRow label="Langue">{labelOf(LANGUAGES, request.language)}</DataRow>
                 <DataRow label="Reçue le">{formatDate(request.createdAt)}</DataRow>
               </dl>
             </CardContent>

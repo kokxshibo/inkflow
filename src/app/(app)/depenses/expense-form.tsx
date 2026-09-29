@@ -13,7 +13,8 @@ import {
   VAT_INFO,
 } from "@/lib/constants";
 import { formatCHF, parseCHF, formatIban } from "@/lib/money";
-import { splitGrossAmount, type SwissQrData } from "@/lib/swiss-qr";
+import { splitGrossAmount } from "@/lib/swiss-qr";
+import type { ExpensePrefill } from "@/lib/scan";
 import { toDateInput } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,24 +25,30 @@ import {
   Select,
   Textarea,
 } from "@/components/ui/field";
+import { DateInput } from "@/components/ui/date-input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function ExpenseForm({
   expense,
-  scanned,
+  prefill,
+  scanData,
   attachmentFile,
   vatEnabled,
   defaultVatRate,
   cancelHref,
+  submitLabel = "Enregistrer",
 }: {
   expense?: Expense;
-  /** Données lues depuis une QR-facture, pour pré-remplir le formulaire */
-  scanned?: SwissQrData | null;
+  /** Données lues par le scanner (QR-facture et/ou IA), à vérifier avant d'enregistrer */
+  prefill?: ExpensePrefill | null;
+  /** Version numérisée par l'IA (JSON), gardée avec la dépense */
+  scanData?: string | null;
   /** Fichier issu du scanner, réinjecté dans l'envoi du formulaire */
   attachmentFile?: File | null;
   vatEnabled: boolean;
   defaultVatRate: number;
   cancelHref: string;
+  submitLabel?: string;
 }) {
   const [state, formAction, pending] = useActionState<ExpenseState, FormData>(
     saveExpense,
@@ -53,12 +60,12 @@ export function ExpenseForm({
   const [amountGross, setAmountGross] = React.useState(
     expense
       ? formatCHF(expense.amountGross, { showCurrency: false })
-      : scanned?.amountCents != null
-        ? formatCHF(scanned.amountCents, { showCurrency: false })
+      : prefill?.amountCents != null
+        ? formatCHF(prefill.amountCents, { showCurrency: false })
         : "",
   );
   const [vatRate, setVatRate] = React.useState<number>(
-    expense?.vatRate ?? scanned?.vatRate ?? (vatEnabled ? defaultVatRate : 0),
+    expense?.vatRate ?? prefill?.vatRate ?? (vatEnabled ? defaultVatRate : 0),
   );
   const [recurring, setRecurring] = React.useState(
     Boolean(expense?.recurrenceMonths),
@@ -79,7 +86,8 @@ export function ExpenseForm({
   return (
     <form action={formAction} className="space-y-5">
       {expense && <input type="hidden" name="id" value={expense.id} />}
-      {scanned && <input type="hidden" name="scannedFromQr" value="on" />}
+      {prefill?.fromQr && <input type="hidden" name="scannedFromQr" value="on" />}
+      {scanData && <input type="hidden" name="scanData" value={scanData} />}
       <input type="hidden" name="vatRate" value={vatRate} />
 
       {state.error && (
@@ -108,8 +116,8 @@ export function ExpenseForm({
               id="supplier"
               name="supplier"
               required
-              autoFocus={!scanned}
-              defaultValue={expense?.supplier ?? scanned?.creditorName ?? ""}
+              autoFocus={!prefill}
+              defaultValue={expense?.supplier ?? prefill?.supplier ?? ""}
               placeholder="Killer Ink, Eternal Ink, régie immobilière…"
             />
           </Field>
@@ -118,7 +126,7 @@ export function ExpenseForm({
             <Select
               id="category"
               name="category"
-              defaultValue={expense?.category ?? "inks"}
+              defaultValue={expense?.category ?? prefill?.category ?? "inks"}
               options={EXPENSE_CATEGORY.map((o) => ({ value: o.value, label: o.label }))}
             />
           </Field>
@@ -131,7 +139,7 @@ export function ExpenseForm({
             <Input
               id="invoiceNumber"
               name="invoiceNumber"
-              defaultValue={expense?.invoiceNumber ?? scanned?.invoiceNumber ?? ""}
+              defaultValue={expense?.invoiceNumber ?? prefill?.invoiceNumber ?? ""}
               className="tabular"
             />
           </Field>
@@ -145,7 +153,7 @@ export function ExpenseForm({
             <Input
               id="label"
               name="label"
-              defaultValue={expense?.label ?? scanned?.message ?? ""}
+              defaultValue={expense?.label ?? prefill?.label ?? ""}
               placeholder="Encres noires 6 × 120 ml + cartouches"
             />
           </Field>
@@ -227,23 +235,21 @@ export function ExpenseForm({
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <Field label="Date de la facture" htmlFor="issuedAt" required>
-            <Input
+            <DateInput
               id="issuedAt"
               name="issuedAt"
-              type="date"
               required
               defaultValue={
-                toDateInput(expense?.issuedAt ?? scanned?.invoiceDate ?? new Date())
+                expense ? toDateInput(expense.issuedAt) : prefill?.invoiceDate ?? toDateInput(new Date())
               }
             />
           </Field>
 
           <Field label="Échéance" htmlFor="dueAt" hint="Facultatif">
-            <Input
+            <DateInput
               id="dueAt"
               name="dueAt"
-              type="date"
-              defaultValue={toDateInput(expense?.dueAt)}
+              defaultValue={expense ? toDateInput(expense.dueAt) : prefill?.dueDate ?? ""}
             />
           </Field>
 
@@ -260,7 +266,7 @@ export function ExpenseForm({
             <Select
               id="paymentMethod"
               name="paymentMethod"
-              defaultValue={expense?.paymentMethod ?? (scanned ? "qr_bill" : "")}
+              defaultValue={expense?.paymentMethod ?? prefill?.paymentMethod ?? ""}
               placeholder="Non précisé"
               options={EXPENSE_PAYMENT_METHOD.map((o) => ({
                 value: o.value,
@@ -275,25 +281,26 @@ export function ExpenseForm({
             className="sm:col-span-2"
             hint="Remplir une date passe automatiquement la dépense en « payée »."
           >
-            <Input
+            <DateInput
               id="paidAt"
               name="paidAt"
-              type="date"
-              defaultValue={toDateInput(expense?.paidAt)}
+              defaultValue={expense ? toDateInput(expense.paidAt) : prefill?.paidDate ?? ""}
             />
           </Field>
         </CardContent>
       </Card>
 
-      {/* Coordonnées de paiement lues dans le QR */}
-      {(scanned || expense?.creditorIban) && (
+      {/* Coordonnées de paiement lues par le scanner */}
+      {(prefill?.iban || prefill?.reference || expense?.creditorIban) && (
         <Card>
           <CardHeader>
             <CardTitle>Coordonnées de paiement</CardTitle>
             <p className="text-[13px] text-[var(--fg-muted)]">
-              {scanned
+              {prefill?.fromQr
                 ? "Extraites de la QR-facture."
-                : "Pour retrouver le paiement dans tes relevés."}
+                : prefill
+                  ? "Lues sur le document : vérifie-les avant de payer."
+                  : "Pour retrouver le paiement dans tes relevés."}
             </p>
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
@@ -304,8 +311,8 @@ export function ExpenseForm({
                 defaultValue={
                   expense?.creditorIban
                     ? formatIban(expense.creditorIban)
-                    : scanned
-                      ? formatIban(scanned.iban)
+                    : prefill?.iban
+                      ? formatIban(prefill.iban)
                       : ""
                 }
                 className="tabular text-[12px]"
@@ -315,7 +322,7 @@ export function ExpenseForm({
               <Input
                 id="creditorName"
                 name="creditorName"
-                defaultValue={expense?.creditorName ?? scanned?.creditorName ?? ""}
+                defaultValue={expense?.creditorName ?? prefill?.creditorName ?? ""}
               />
             </Field>
             <Field
@@ -323,7 +330,7 @@ export function ExpenseForm({
               htmlFor="qrReference"
               className="sm:col-span-2"
               hint={
-                scanned?.referenceType === "QRR"
+                prefill?.referenceType === "QRR"
                   ? "Référence QRR — à reprendre telle quelle lors du paiement."
                   : undefined
               }
@@ -331,7 +338,7 @@ export function ExpenseForm({
               <Input
                 id="qrReference"
                 name="qrReference"
-                defaultValue={expense?.qrReference ?? scanned?.reference ?? ""}
+                defaultValue={expense?.qrReference ?? prefill?.reference ?? ""}
                 className="tabular text-[12px]"
               />
             </Field>
@@ -426,7 +433,7 @@ export function ExpenseForm({
           </Button>
           <Button type="submit" variant="primary" loading={pending}>
             <Save />
-            Enregistrer
+            {submitLabel}
           </Button>
         </div>
       </div>

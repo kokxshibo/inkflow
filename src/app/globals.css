@@ -53,6 +53,10 @@
   --info: oklch(0.72 0.13 245);
   --info-soft: oklch(0.72 0.13 245 / 13%);
 
+  /* Graphiques : couleurs catégorielles validées (contraste, daltonisme) sur la surface sombre. */
+  --series-1: #3987e5;
+  --series-2: #d95926;
+
   --shadow-sm: 0 1px 2px oklch(0 0 0 / 30%);
   --shadow-md: 0 4px 16px -4px oklch(0 0 0 / 45%);
   --shadow-lg: 0 16px 48px -12px oklch(0 0 0 / 60%);
@@ -89,6 +93,10 @@
   --danger-soft: oklch(0.56 0.2 22 / 10%);
   --info: oklch(0.55 0.15 245);
   --info-soft: oklch(0.55 0.15 245 / 11%);
+
+  /* Graphiques : mêmes teintes, pas choisis pour la surface claire. */
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
 
   --shadow-sm: 0 1px 2px oklch(0.2 0.01 265 / 7%);
   --shadow-md: 0 4px 16px -4px oklch(0.2 0.01 265 / 12%);

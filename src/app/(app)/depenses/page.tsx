@@ -12,13 +12,23 @@ import {
 } from "lucide-react";
 import { db, getSettings } from "@/lib/db";
 import { formatCHF } from "@/lib/money";
-import { formatDate, startOfMonth, truncate } from "@/lib/utils";
+import { formatDate, truncate } from "@/lib/utils";
+import {
+  bucketsFor,
+  periodLinks,
+  periodWhere,
+  resolvePeriod,
+  sumByBucket,
+  type Period,
+} from "@/lib/periods";
 import { EXPENSE_CATEGORY, EXPENSE_STATUS, labelOf } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, StatCard } from "@/components/ui/card";
 import { Badge, StatusBadge } from "@/components/ui/badge";
 import { EmptyState, PageHeader } from "@/components/ui/misc";
 import { ListToolbar } from "@/components/list-toolbar";
+import { PeriodChart } from "@/components/period-chart";
+import { PeriodPicker } from "@/components/period-picker";
 
 export const metadata: Metadata = { title: "Dépenses" };
 export const dynamic = "force-dynamic";
@@ -26,17 +36,28 @@ export const dynamic = "force-dynamic";
 export default async function ExpensesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; statut?: string; categorie?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    statut?: string;
+    categorie?: string;
+    periode?: string;
+    date?: string;
+    du?: string;
+    au?: string;
+  }>;
 }) {
   const params = await searchParams;
   const query = params.q?.trim() ?? "";
   const now = new Date();
-  const yearStart = new Date(now.getFullYear(), 0, 1);
+  const period = resolvePeriod(params, now);
+  const inPeriod = periodWhere(period);
 
-  const [expenses, settings, monthTotal, yearTotal, openExpenses, deductibleVat] =
+  const [expenses, settings, periodExpenses, openExpenses, first] =
     await Promise.all([
       db.expense.findMany({
         where: {
+          // Une recherche porte sur toutes les périodes.
+          ...(inPeriod && !query ? { issuedAt: inPeriod } : {}),
           ...(params.statut ? { status: params.statut } : {}),
           ...(params.categorie ? { category: params.categorie } : {}),
           ...(query
@@ -51,26 +72,32 @@ export default async function ExpensesPage({
             : {}),
         },
         orderBy: [{ issuedAt: "desc" }],
-        take: 150,
+        take: 300,
       }),
       getSettings(),
-      db.expense.aggregate({
-        _sum: { amountGross: true },
-        where: { issuedAt: { gte: startOfMonth(now) } },
-      }),
-      db.expense.aggregate({
-        _sum: { amountGross: true },
-        where: { issuedAt: { gte: yearStart } },
+      db.expense.findMany({
+        where: inPeriod ? { issuedAt: inPeriod } : {},
+        select: { issuedAt: true, amountGross: true, vatAmount: true, vatDeductible: true },
       }),
       db.expense.findMany({
         where: { status: { in: ["to_pay", "overdue"] } },
         select: { amountGross: true, dueAt: true },
       }),
-      db.expense.aggregate({
-        _sum: { vatAmount: true },
-        where: { vatDeductible: true, issuedAt: { gte: yearStart } },
-      }),
+      db.expense.findFirst({ orderBy: { issuedAt: "asc" }, select: { issuedAt: true } }),
     ]);
+
+  const spent = periodExpenses.reduce((sum, expense) => sum + expense.amountGross, 0);
+  const deductibleVat = periodExpenses
+    .filter((expense) => expense.vatDeductible)
+    .reduce((sum, expense) => sum + expense.vatAmount, 0);
+  const buckets = bucketsFor(period, first?.issuedAt ?? null, now);
+  const chartSeries = [
+    {
+      name: "Dépenses",
+      color: "var(--series-1)",
+      values: sumByBucket(buckets, periodExpenses, (row) => row.issuedAt, (row) => row.amountGross),
+    },
+  ];
 
   const toPay = openExpenses.reduce((sum, e) => sum + e.amountGross, 0);
   const overdue = openExpenses
@@ -100,41 +127,52 @@ export default async function ExpensesPage({
         }
       />
 
+      <PeriodPicker {...periodLinks("/depenses", params, period)} />
+
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 mb-6 stagger">
         <StatCard
-          label="Dépenses ce mois"
-          value={formatCHF(monthTotal._sum.amountGross ?? 0)}
+          label="Dépenses"
+          value={formatCHF(spent)}
           icon={<TrendingDown />}
-          tone="neutral"
-        />
-        <StatCard
-          label="Dépenses cette année"
-          value={formatCHF(yearTotal._sum.amountGross ?? 0)}
-          icon={<Wallet />}
           tone="accent"
+          sublabel={`${periodExpenses.length} dépense${periodExpenses.length > 1 ? "s" : ""} · ${period.label}`}
         />
         <StatCard
           label="À payer"
           value={formatCHF(toPay)}
+          icon={<Wallet />}
           tone={toPay > 0 ? "warning" : "neutral"}
-          sublabel={`${openExpenses.length} facture${openExpenses.length > 1 ? "s" : ""} ouverte${openExpenses.length > 1 ? "s" : ""}`}
+          sublabel={`${openExpenses.length} facture${openExpenses.length > 1 ? "s" : ""} ouverte${openExpenses.length > 1 ? "s" : ""}, toutes périodes`}
+        />
+        <StatCard
+          label="En retard"
+          value={formatCHF(overdue)}
+          tone={overdue > 0 ? "danger" : "neutral"}
+          icon={overdue > 0 ? <AlertTriangle /> : undefined}
+          sublabel="Toutes périodes"
         />
         {settings.vatEnabled ? (
           <StatCard
             label="TVA récupérable"
-            value={formatCHF(deductibleVat._sum.vatAmount ?? 0)}
+            value={formatCHF(deductibleVat)}
             tone="success"
-            sublabel="Impôt préalable de l'année"
+            sublabel={`Impôt préalable · ${period.label}`}
           />
         ) : (
           <StatCard
-            label="En retard"
-            value={formatCHF(overdue)}
-            tone={overdue > 0 ? "danger" : "neutral"}
-            icon={overdue > 0 ? <AlertTriangle /> : undefined}
+            label="Moyenne par dépense"
+            value={formatCHF(periodExpenses.length > 0 ? Math.round(spent / periodExpenses.length) : 0)}
+            tone="neutral"
+            sublabel={period.label}
           />
         )}
       </div>
+
+      <Card className="mb-6">
+        <CardContent className="pt-5">
+          <PeriodChart title={`Dépenses · ${period.label}`} buckets={buckets} series={chartSeries} />
+        </CardContent>
+      </Card>
 
       {/* Raccourci scan, bien visible sur téléphone */}
       <Card className="mb-6 sm:hidden border-[var(--accent)]/25 bg-[var(--accent-soft)]">
@@ -148,10 +186,10 @@ export default async function ExpensesPage({
             </span>
             <span className="min-w-0">
               <span className="block text-sm font-medium">
-                Photographier une facture
+                Scanner une facture
               </span>
               <span className="block text-[12px] text-[var(--fg-muted)] mt-0.5 leading-relaxed">
-                La QR-facture suisse remplit tout automatiquement.
+                Redressée et lue automatiquement ; tu valides avant d&apos;enregistrer.
               </span>
             </span>
           </Link>
@@ -264,18 +302,18 @@ export default async function ExpensesPage({
         </Card>
       )}
 
-      {/* Répartition par catégorie */}
-      {expenses.length > 0 && <CategoryBreakdown />}
+      {/* Répartition par catégorie, sur la période suivie */}
+      <CategoryBreakdown period={period} />
     </>
   );
 }
 
-async function CategoryBreakdown() {
-  const yearStart = new Date(new Date().getFullYear(), 0, 1);
+async function CategoryBreakdown({ period }: { period: Period }) {
+  const inPeriod = periodWhere(period);
   const grouped = await db.expense.groupBy({
     by: ["category"],
     _sum: { amountGross: true },
-    where: { issuedAt: { gte: yearStart } },
+    where: inPeriod ? { issuedAt: inPeriod } : {},
     orderBy: { _sum: { amountGross: "desc" } },
     take: 8,
   });
@@ -286,7 +324,7 @@ async function CategoryBreakdown() {
   return (
     <Card className="mt-6">
       <CardHeader>
-        <CardTitle>Répartition de l&apos;année</CardTitle>
+        <CardTitle>Répartition · {period.label}</CardTitle>
         <span className="text-[13px] font-semibold tabular">{formatCHF(total)}</span>
       </CardHeader>
       <CardContent className="space-y-2.5">

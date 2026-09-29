@@ -1,2 +1,4 @@
 # Scripts et configuration du VPS : fins de ligne Unix obligatoires (bash, systemd, nginx).
 deploy/** text eol=lf
+# Migrations : le texte des messages en base ne doit pas recevoir de retours chariot Windows.
+prisma/migrations/** text eol=lf

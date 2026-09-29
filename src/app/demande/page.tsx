@@ -4,32 +4,39 @@ import { redirect } from "next/navigation";
 import { db, getSettings } from "@/lib/db";
 import { isDatabaseReady } from "@/lib/health";
 import { REF_COOKIE, firstNameOf } from "@/lib/leads";
+import { dictionary, formTexts, parseLang } from "./i18n";
+import { LanguageSwitcher } from "./language-switcher";
 import { RequestForm, type RequestPrefill } from "./request-form";
 
 export const dynamic = "force-dynamic";
 
-export async function generateMetadata(): Promise<Metadata> {
-  const studioName = (await isDatabaseReady())
-    ? (await getSettings()).studioName
-    : "InkFlow";
+type SearchParams = Promise<{ ref?: string; lang?: string }>;
+
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}): Promise<Metadata> {
+  const t = dictionary(parseLang((await searchParams).lang));
+  const name = (await isDatabaseReady()) ? (await getSettings()).studioName : "InkFlow";
   return {
-    title: `Demander un tatouage — ${studioName}`,
-    description: `Décris ton projet de tatouage et envoie tes références à ${studioName}.`,
+    title: t.metaTitle(name),
+    description: t.metaDescription(name),
     robots: { index: true, follow: true },
   };
 }
 
-export default async function PublicRequestPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ ref?: string }>;
-}) {
+export default async function PublicRequestPage({ searchParams }: { searchParams: SearchParams }) {
   if (!(await isDatabaseReady())) redirect("/installation");
 
+  const params = await searchParams;
+  // Français par défaut ; allemand et anglais au choix, en haut à droite.
+  const lang = parseLang(params.lang);
+  const t = dictionary(lang);
   const settings = await getSettings();
 
   // Lien perso (/d/<jeton>) : on sait déjà qui écrit et depuis où.
-  const token = (await searchParams).ref ?? (await cookies()).get(REF_COOKIE)?.value;
+  const token = params.ref ?? (await cookies()).get(REF_COOKIE)?.value;
   const lead =
     token && /^[a-z0-9]{6,32}$/.test(token)
       ? await db.lead.findUnique({ where: { token } })
@@ -45,14 +52,12 @@ export default async function PublicRequestPage({
     prefill.email = lead.email ?? undefined;
     prefill.instagram = lead.username ?? undefined;
   }
-  const greeting = lead
-    ? `${prefill.firstName ? `Salut ${prefill.firstName} ! ` : ""}Suite à ton message ${
-        lead.channel === "instagram" ? "sur Instagram" : "par e-mail"
-      }, voici le formulaire pour me présenter ton projet.`
-    : null;
+
+  // Seuls des textes simples passent au composant client.
+  const texts = formTexts(lang, settings.studioName);
 
   return (
-    <div className="min-h-dvh bg-[var(--bg)]">
+    <div lang={lang} className="min-h-dvh bg-[var(--bg)]">
       {/* Bandeau */}
       <header className="relative overflow-hidden border-b border-[var(--border)] bg-[var(--bg-subtle)]">
         <div className="absolute inset-0 grid-bg opacity-30" aria-hidden />
@@ -61,23 +66,28 @@ export default async function PublicRequestPage({
           style={{ background: "var(--accent)" }}
           aria-hidden
         />
-        <div className="relative max-w-2xl mx-auto px-6 py-14 sm:py-20 text-center">
+        <div className="relative max-w-2xl mx-auto px-6 pt-5 flex justify-end">
+          <LanguageSwitcher current={lang} refToken={lead?.token} label={t.language} />
+        </div>
+        <div className="relative max-w-2xl mx-auto px-6 pt-8 pb-14 sm:pt-10 sm:pb-20 text-center">
           <p className="text-[11px] uppercase tracking-[0.2em] text-[var(--accent)] mb-3">
             {settings.studioName}
           </p>
           <h1 className="text-3xl sm:text-4xl font-semibold tracking-[-0.03em] leading-tight">
-            Parle-moi de ton projet
+            {t.title}
           </h1>
           <p className="mt-4 text-[15px] text-[var(--fg-muted)] leading-relaxed max-w-lg mx-auto">
-            {greeting ??
-              "Remplis ce formulaire plutôt que de m'écrire en message privé : je reçois tout au même endroit, rien ne se perd, et je te réponds plus vite."}
+            {lead ? t.greeting(prefill.firstName, lead.channel === "instagram") : t.intro}
           </p>
         </div>
       </header>
 
       <main className="max-w-2xl mx-auto px-6 py-10 sm:py-14">
+        {/* La clé force un nouveau formulaire quand la langue change. */}
         <RequestForm
-          studioName={settings.studioName}
+          key={lang}
+          lang={lang}
+          texts={texts}
           refToken={lead?.token}
           prefill={prefill}
         />
@@ -91,9 +101,7 @@ export default async function PublicRequestPage({
             {settings.city && `, ${settings.postalCode} ${settings.city}`}
           </p>
           <p className="text-[11px] text-[var(--fg-subtle)] mt-2 leading-relaxed">
-            Tes données sont utilisées uniquement pour traiter ta demande et ne sont
-            jamais transmises à des tiers. Tu peux demander leur suppression à tout
-            moment{settings.email ? ` en écrivant à ${settings.email}` : ""}.
+            {t.privacy(settings.email || null)}
           </p>
         </div>
       </footer>

@@ -12,6 +12,7 @@ import {
   Instagram,
   LogOut,
   Mail,
+  ScanLine,
   RefreshCw,
   Save,
   TriangleAlert,
@@ -20,7 +21,9 @@ import {
   connectGmailAction,
   disconnectGmailAction,
   disconnectInstagramAction,
+  removeGeminiKeyAction,
   saveAutoReplyAction,
+  saveGeminiKeyAction,
   saveInstagramAppAction,
   startInstagramAction,
   syncGmailAction,
@@ -61,12 +64,14 @@ export function ConnexionsView({
   urls,
   preview,
   flash,
+  gemini,
 }: {
   gmail: ChannelView;
   instagram: ChannelView & { appId: string | null; hasAppSecret: boolean; verifyToken: string | null };
   urls: { app: string; redirect: string; webhook: string; configured: boolean };
   preview: Preview;
   flash: { instagramOk: boolean; instagramError: string | null };
+  gemini: { connected: boolean; since: string | null; model: string };
 }) {
   const router = useRouter();
   const [instagramError] = React.useState(flash.instagramError);
@@ -110,7 +115,96 @@ export function ConnexionsView({
         preview={preview}
         error={instagramError}
       />
+      <GeminiCard gemini={gemini} />
     </div>
+  );
+}
+
+/* ─────────────────────── Scanner IA (Gemini) ─────────────────────── */
+
+function GeminiCard({ gemini }: { gemini: { connected: boolean; since: string | null; model: string } }) {
+  const [state, formAction, pending] = useActionState<ConnexionState, FormData>(
+    saveGeminiKeyAction,
+    {},
+  );
+  const [busy, startTransition] = React.useTransition();
+
+  React.useEffect(() => {
+    if (state.success) toast.success(state.success);
+  }, [state]);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <ScanLine className="size-4 text-[var(--fg-subtle)]" />
+          Scanner IA (Gemini)
+        </CardTitle>
+        <StatusBadge connected={gemini.connected} />
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <p className="text-[13px] text-[var(--fg-muted)] leading-relaxed">
+          Le scanner de <em>Dépenses</em> envoie la facture scannée à Gemini ({gemini.model}),
+          qui en lit le fournisseur, les dates, les montants, la TVA et les lignes. Tu
+          vérifies tout avant d&apos;enregistrer, et le scan reste joint à la dépense.
+        </p>
+        {gemini.connected ? (
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-[13px]">
+              Analyse IA active{gemini.since ? ` depuis le ${gemini.since}` : ""}.
+            </p>
+            <Button
+              variant="dangerGhost"
+              size="sm"
+              loading={busy}
+              onClick={() =>
+                startTransition(async () => {
+                  await removeGeminiKeyAction();
+                  toast.success("Analyse IA désactivée");
+                })
+              }
+            >
+              <LogOut />
+              Retirer la clé
+            </Button>
+          </div>
+        ) : (
+          <form action={formAction} className="space-y-4">
+            <ol className="text-[13px] text-[var(--fg-muted)] leading-relaxed list-decimal pl-5 space-y-1">
+              <li>
+                Ouvre{" "}
+                <a
+                  href="https://aistudio.google.com/app/apikey"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[var(--accent)] hover:underline inline-flex items-center gap-1"
+                >
+                  Google AI Studio
+                  <ExternalLink className="size-3" />
+                </a>{" "}
+                avec ton compte Google et crée une clé API.
+              </li>
+              <li>Colle-la ci-dessous : elle est vérifiée puis chiffrée sur le serveur.</li>
+            </ol>
+            {state.error && <Notice tone="danger">{state.error}</Notice>}
+            <Field label="Clé API Gemini" htmlFor="gemini-key" required>
+              <Input
+                id="gemini-key"
+                name="geminiKey"
+                type="password"
+                required
+                autoComplete="off"
+                placeholder="AIza…"
+              />
+            </Field>
+            <Button type="submit" variant="primary" loading={pending}>
+              <ScanLine />
+              Activer l&apos;analyse IA
+            </Button>
+          </form>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

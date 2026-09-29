@@ -105,6 +105,18 @@ export async function saveExpense(
     }
   }
 
+  // Version numérisée par l'IA (scanner) : gardée telle quelle si c'est bien du JSON.
+  const scanRaw = String(formData.get("scanData") ?? "");
+  let scanData: string | null = null;
+  if (scanRaw && scanRaw.length <= 200_000) {
+    try {
+      JSON.parse(scanRaw);
+      scanData = scanRaw;
+    } catch {
+      scanData = null;
+    }
+  }
+
   const paidAt = input.paidAt ? new Date(input.paidAt) : null;
   const data = {
     supplier: input.supplier,
@@ -130,6 +142,7 @@ export async function saveExpense(
       ? Number.parseInt(input.recurrenceMonths, 10)
       : null,
     notes: input.notes,
+    ...(scanData ? { scanData } : {}),
     ...(attachment
       ? {
           attachmentUrl: attachment.url,

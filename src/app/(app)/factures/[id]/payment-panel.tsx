@@ -12,6 +12,7 @@ import { PAYMENT_METHOD, labelOf } from "@/lib/constants";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Field, Input, MoneyInput, Select } from "@/components/ui/field";
+import { DateInput } from "@/components/ui/date-input";
 import {
   Dialog,
   DialogBody,
@@ -178,10 +179,9 @@ export function PaymentPanel({
               </Field>
 
               <Field label="Date du paiement" htmlFor="paidAt" required>
-                <Input
+                <DateInput
                   id="paidAt"
                   name="paidAt"
-                  type="date"
                   required
                   defaultValue={toDateInput(new Date())}
                 />

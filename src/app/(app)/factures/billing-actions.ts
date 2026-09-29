@@ -16,6 +16,13 @@ export interface QuickBillingState {
 
 const PAYMENT_METHODS = ["twint", "cash", "card", "bank_transfer"] as const;
 
+/** Date choisie dans le calendrier (AAAA-MM-JJ). */
+const dayField = (message: string) =>
+  z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, message)
+    .refine((value) => !Number.isNaN(new Date(value).getTime()), message);
+
 const baseSchema = z.object({
   label: z.string().trim().min(1, "Indique ce qui est facturé."),
   description: z
@@ -27,7 +34,25 @@ const baseSchema = z.object({
   amount: z.string().min(1, "Le montant est requis."),
   paid: z.enum(["yes", "no"]).default("no"),
   method: z.enum(PAYMENT_METHODS).default("twint"),
+  issuedAt: dayField("Choisis la date de la facture."),
+  // Absente quand la facture est déjà encaissée : l'échéance est alors le jour même.
+  dueAt: z
+    .string()
+    .optional()
+    .transform((value) => value || undefined)
+    .pipe(dayField("Choisis la date d'échéance.").optional()),
 });
+
+/** Vérifie l'ordre des dates ; renvoie une erreur de champ ou null. */
+function checkDates(input: { issuedAt: string; dueAt?: string; paid: "yes" | "no" }) {
+  if (input.paid === "no" && input.dueAt && input.dueAt < input.issuedAt) {
+    return {
+      error: "Vérifie les dates.",
+      fieldErrors: { dueAt: "L'échéance ne peut pas précéder la date de la facture." },
+    };
+  }
+  return null;
+}
 
 function collectErrors(error: z.ZodError) {
   const fieldErrors: Record<string, string> = {};
@@ -53,6 +78,9 @@ interface IssueInput {
   amount: number;
   paid: boolean;
   method: (typeof PAYMENT_METHODS)[number];
+  /** Dates choisies dans le calendrier (AAAA-MM-JJ) */
+  issuedAt: string;
+  dueAt?: string;
   /** Séance précise à rattacher */
   appointmentId?: string;
   /** Rattacher toutes les séances effectuées non facturées du projet */
@@ -70,9 +98,17 @@ async function issueInvoice(input: IssueInput) {
   // Le montant saisi est ce que paie le client : la TVA en est extraite.
   const totals = fromGross(input.amount, vatRate);
   const now = new Date();
+  const issuedAt = new Date(input.issuedAt);
+  // Déjà encaissée : payée le jour de la facture. Sinon, l'échéance choisie,
+  // ou à défaut le délai de paiement des réglages.
+  const dueAt = input.paid
+    ? issuedAt
+    : input.dueAt
+      ? new Date(input.dueAt)
+      : addDays(issuedAt, settings.paymentTermDays);
 
   const invoice = await db.$transaction(async (tx) => {
-    const number = await nextNumber("invoice", settings.invoicePrefix, tx);
+    const number = await nextNumber("invoice", settings.invoicePrefix, tx, issuedAt);
 
     const created = await tx.invoice.create({
       data: {
@@ -83,10 +119,10 @@ async function issueInvoice(input: IssueInput) {
         kind: input.kind,
         // Émise directement : le montant vient d'être vérifié à l'écran.
         status: input.paid ? "paid" : "sent",
-        issuedAt: now,
-        dueAt: input.paid ? now : addDays(now, settings.paymentTermDays),
+        issuedAt,
+        dueAt,
         sentAt: now,
-        paidAt: input.paid ? now : null,
+        paidAt: input.paid ? issuedAt : null,
         subtotal: totals.subtotal,
         discount: 0,
         vatRate,
@@ -132,7 +168,7 @@ async function issueInvoice(input: IssueInput) {
           invoiceId: created.id,
           amount: totals.total,
           method: input.method,
-          paidAt: now,
+          paidAt: issuedAt,
         },
       });
     }
@@ -184,6 +220,8 @@ export async function createInvoiceFromSuggestion(
   if (amount <= 0) {
     return { error: "Vérifie le montant.", fieldErrors: { amount: "Le montant doit être supérieur à zéro." } };
   }
+  const datesError = checkDates(parsed.data);
+  if (datesError) return datesError;
 
   // La suggestion est recalculée ici : si elle a déjà été facturée entre-temps
   // (autre onglet, autre appareil), on refuse plutôt que de facturer deux fois.
@@ -203,6 +241,8 @@ export async function createInvoiceFromSuggestion(
       amount,
       paid: parsed.data.paid === "yes",
       method: parsed.data.method,
+      issuedAt: parsed.data.issuedAt,
+      dueAt: parsed.data.dueAt,
       appointmentId: suggestion.appointmentId,
       attachProjectSessions: suggestion.kind === "balance",
     });
@@ -235,6 +275,9 @@ export async function createQuickInvoice(
     return { error: "Vérifie le montant.", fieldErrors: { amount: "Le montant doit être supérieur à zéro." } };
   }
 
+  const datesError = checkDates(parsed.data);
+  if (datesError) return datesError;
+
   const client = await db.client.findUnique({ where: { id: parsed.data.clientId } });
   if (!client) return { error: "Client introuvable.", fieldErrors: { clientId: "Client introuvable." } };
 
@@ -248,6 +291,8 @@ export async function createQuickInvoice(
     amount,
     paid: parsed.data.paid === "yes",
     method: parsed.data.method,
+    issuedAt: parsed.data.issuedAt,
+    dueAt: parsed.data.dueAt,
   });
 
   redirect(`/factures/${invoice.id}?creee=1`);

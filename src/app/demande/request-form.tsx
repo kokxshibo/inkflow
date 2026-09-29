@@ -13,20 +13,19 @@ import {
   Sparkles,
 } from "lucide-react";
 import { submitRequest, type RequestFormState } from "./actions";
-import { BODY_ZONES, COLOR_MODE, PROJECT_STYLE } from "@/lib/constants";
+import {
+  BUDGET_LABELS,
+  COLOR_LABELS,
+  STYLE_LABELS,
+  ZONE_LABELS,
+  translatedOptions,
+  type FormTexts,
+  type Lang,
+} from "./i18n";
 import { cn, toDateInput } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { CheckboxField, Field, Input, Select, Textarea } from "@/components/ui/field";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
-const BUDGETS = [
-  "Moins de 300 CHF",
-  "300 – 600 CHF",
-  "600 – 1'000 CHF",
-  "1'000 – 2'000 CHF",
-  "Plus de 2'000 CHF",
-  "Je ne sais pas encore",
-];
 
 export interface RequestPrefill {
   firstName?: string;
@@ -36,11 +35,13 @@ export interface RequestPrefill {
 }
 
 export function RequestForm({
-  studioName,
+  lang,
+  texts: t,
   refToken,
   prefill = {},
 }: {
-  studioName: string;
+  lang: Lang;
+  texts: FormTexts;
   /** Jeton du lien perso : rattache la demande à la conversation Instagram / Gmail. */
   refToken?: string;
   prefill?: RequestPrefill;
@@ -91,11 +92,9 @@ export function RequestForm({
           <span className="inline-grid place-items-center size-14 rounded-full bg-[var(--success-soft)] text-[var(--success)] mb-5">
             <CheckCircle2 className="size-7" />
           </span>
-          <h2 className="text-xl font-semibold tracking-[-0.02em]">Demande envoyée</h2>
+          <h2 className="text-xl font-semibold tracking-[-0.02em]">{t.successTitle}</h2>
           <p className="text-[14px] text-[var(--fg-muted)] mt-3 leading-relaxed max-w-md mx-auto">
-            Merci ! Ta demande est bien arrivée chez {studioName}. Je te réponds dès que
-            possible, en général sous quelques jours. Si ma réponse arrive par e-mail,
-            pense à vérifier tes indésirables.
+            {t.successText}
           </p>
         </Card>
       </motion.div>
@@ -113,6 +112,7 @@ export function RequestForm({
       }}
       className="space-y-5"
     >
+      <input type="hidden" name="lang" value={lang} />
       {refToken && <input type="hidden" name="ref" value={refToken} />}
 
       {/* Piège anti-robot : invisible pour les humains */}
@@ -138,41 +138,50 @@ export function RequestForm({
       {/* ── Qui es-tu ── */}
       <Card>
         <CardHeader>
-          <CardTitle>Qui es-tu ?</CardTitle>
+          <CardTitle>{t.who}</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
-          <Field label="Prénom" htmlFor="firstName" required error={state.fieldErrors?.firstName}>
+          <Field label={t.firstName} htmlFor="firstName" required error={state.fieldErrors?.firstName}>
             <Input
               id="firstName"
               name="firstName"
               required
+              autoComplete="given-name"
               placeholder="Léa"
               defaultValue={prefill.firstName}
             />
           </Field>
-          <Field label="Nom" htmlFor="lastName" required error={state.fieldErrors?.lastName}>
+          <Field label={t.lastName} htmlFor="lastName" required error={state.fieldErrors?.lastName}>
             <Input
               id="lastName"
               name="lastName"
               required
+              autoComplete="family-name"
               placeholder="Morand"
               defaultValue={prefill.lastName}
             />
           </Field>
-          <Field label="E-mail" htmlFor="email" required error={state.fieldErrors?.email}>
+          <Field label={t.email} htmlFor="email" required error={state.fieldErrors?.email}>
             <Input
               id="email"
               name="email"
               type="email"
               required
+              autoComplete="email"
               placeholder="lea.morand@example.ch"
               defaultValue={prefill.email}
             />
           </Field>
-          <Field label="Téléphone" htmlFor="phone" hint="Facultatif">
-            <Input id="phone" name="phone" type="tel" placeholder="+41 79 123 45 67" />
+          <Field label={t.phone} htmlFor="phone" hint={t.optional}>
+            <Input
+              id="phone"
+              name="phone"
+              type="tel"
+              autoComplete="tel"
+              placeholder="+41 79 123 45 67"
+            />
           </Field>
-          <Field label="Instagram" htmlFor="instagram" hint="Facultatif, sans le @">
+          <Field label="Instagram" htmlFor="instagram" hint={t.instagramHint}>
             <Input
               id="instagram"
               name="instagram"
@@ -180,7 +189,7 @@ export function RequestForm({
               defaultValue={prefill.instagram}
             />
           </Field>
-          <Field label="Date de naissance" htmlFor="birthDate" hint="Facultatif">
+          <Field label={t.birthDate} htmlFor="birthDate" hint={t.optional}>
             <Input
               id="birthDate"
               name="birthDate"
@@ -191,48 +200,53 @@ export function RequestForm({
         </CardContent>
       </Card>
 
-      {/* ── Le projet ── */}
+      {/* ── Le projet : emplacement, description, puis images ── */}
       <Card>
         <CardHeader>
           <div>
             <CardTitle className="flex items-center gap-2">
               <Sparkles className="size-4 text-[var(--accent)]" />
-              Ton projet
+              {t.project}
             </CardTitle>
-            <p className="text-[13px] text-[var(--fg-muted)] mt-0.5">
-              Plus tu es précis·e, plus la réponse sera rapide.
-            </p>
+            <p className="text-[13px] text-[var(--fg-muted)] mt-0.5">{t.projectIntro}</p>
           </div>
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="flex flex-col gap-1.5">
             <span id="bodyZone-label" className="text-[13px] font-medium text-[var(--fg-muted)]">
-              Où veux-tu ton tatouage ?
+              {t.zoneQuestion}
             </span>
             <input type="hidden" name="bodyZone" value={zone ?? ""} />
-            <ZonePicker value={zone} onChange={setZone} />
+            <ZonePicker
+              value={zone}
+              onChange={setZone}
+              options={[
+                ...translatedOptions(ZONE_LABELS, lang),
+                { value: "", label: t.zoneUnknown },
+              ]}
+            />
           </div>
 
           <Field
-            label="Décris ton idée"
+            label={t.description}
             htmlFor="description"
             required
             error={state.fieldErrors?.description}
-            hint="Le motif, l'ambiance, ce que ça représente pour toi, ce que tu veux éviter…"
+            hint={t.descriptionHint}
           >
             <Textarea
               id="description"
               name="description"
               required
               rows={6}
-              placeholder="J'aimerais une carpe koï qui remonte le bras, avec des vagues en fond et des feuilles d'érable. Plutôt dans un style japonais traditionnel. J'aimerais éviter le rouge vif."
+              placeholder={t.descriptionPlaceholder}
             />
           </Field>
 
           <div className="flex flex-col gap-1.5">
-            <span className="text-[13px] font-medium text-[var(--fg-muted)]">Tes images</span>
+            <span className="text-[13px] font-medium text-[var(--fg-muted)]">{t.images}</span>
             <p className="text-xs text-[var(--fg-subtle)] leading-relaxed -mt-0.5 mb-1">
-              Jusqu&apos;à 6 images : inspirations, photo de la zone, croquis.
+              {t.imagesHint}
             </p>
             <input
               ref={inputRef}
@@ -257,7 +271,7 @@ export function RequestForm({
                       type="button"
                       onClick={() => removeFile(index)}
                       className="absolute top-1 right-1 grid place-items-center size-6 rounded-full bg-black/70 text-white sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
-                      aria-label="Retirer cette image"
+                      aria-label={t.removeImage}
                     >
                       <X className="size-3" />
                     </button>
@@ -278,11 +292,9 @@ export function RequestForm({
               >
                 <ImagePlus className="size-5 text-[var(--fg-subtle)]" />
                 <span className="text-[13px] font-medium mt-2.5">
-                  {files.length > 0 ? "Ajouter d'autres images" : "Ajouter des images"}
+                  {files.length > 0 ? t.addMoreImages : t.addImages}
                 </span>
-                <span className="text-[11px] text-[var(--fg-subtle)] mt-1">
-                  JPG, PNG ou WebP · 8 Mo maximum
-                </span>
+                <span className="text-[11px] text-[var(--fg-subtle)] mt-1">{t.imageFormats}</span>
               </button>
             )}
           </div>
@@ -293,46 +305,40 @@ export function RequestForm({
       <Card>
         <CardHeader>
           <div>
-            <CardTitle>Quelques précisions</CardTitle>
-            <p className="text-[13px] text-[var(--fg-muted)] mt-0.5">
-              Facultatif, mais ça m&apos;aide à te répondre plus vite.
-            </p>
+            <CardTitle>{t.details}</CardTitle>
+            <p className="text-[13px] text-[var(--fg-muted)] mt-0.5">{t.detailsIntro}</p>
           </div>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
-          <Field label="Taille approximative" htmlFor="sizeCm" hint="Par exemple : 15 x 20 cm">
+          <Field label={t.size} htmlFor="sizeCm" hint={t.sizeHint}>
             <Input id="sizeCm" name="sizeCm" placeholder="15 x 20 cm" />
           </Field>
-          <Field label="Rendu souhaité" htmlFor="colorMode">
+          <Field label={t.colorMode} htmlFor="colorMode">
             <Select
               id="colorMode"
               name="colorMode"
               defaultValue="blackgrey"
-              options={COLOR_MODE.map((o) => ({ value: o.value, label: o.label }))}
+              options={translatedOptions(COLOR_LABELS, lang)}
             />
           </Field>
-          <Field label="Style" htmlFor="style">
+          <Field label={t.style} htmlFor="style">
             <Select
               id="style"
               name="style"
-              placeholder="Je fais confiance"
-              options={PROJECT_STYLE.map((o) => ({ value: o.value, label: o.label }))}
+              placeholder={t.stylePlaceholder}
+              options={translatedOptions(STYLE_LABELS, lang)}
             />
           </Field>
-          <Field label="Budget envisagé" htmlFor="budget">
+          <Field label={t.budget} htmlFor="budget">
             <Select
               id="budget"
               name="budget"
-              placeholder="Non précisé"
-              options={BUDGETS.map((b) => ({ value: b, label: b }))}
+              placeholder={t.budgetPlaceholder}
+              options={translatedOptions(BUDGET_LABELS, lang)}
             />
           </Field>
-          <Field label="Tes disponibilités" htmlFor="availability" className="sm:col-span-2">
-            <Input
-              id="availability"
-              name="availability"
-              placeholder="Plutôt en semaine, après 16 h"
-            />
+          <Field label={t.availability} htmlFor="availability" className="sm:col-span-2">
+            <Input id="availability" name="availability" placeholder={t.availabilityPlaceholder} />
           </Field>
         </CardContent>
       </Card>
@@ -340,14 +346,14 @@ export function RequestForm({
       {/* ── Santé et accords ── */}
       <Card>
         <CardHeader>
-          <CardTitle>Quelques vérifications</CardTitle>
+          <CardTitle>{t.checks}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <CheckboxField
             id="hasContraindications"
             name="hasContraindications"
-            label="J'ai une condition médicale à signaler"
-            hint="Allergie, traitement en cours, grossesse, problème de peau, trouble de la coagulation…"
+            label={t.medical}
+            hint={t.medicalHint}
             checked={hasContraindications}
             onCheckedChange={setHasContraindications}
           />
@@ -359,63 +365,42 @@ export function RequestForm({
               transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
               className="overflow-hidden"
             >
-              <Field
-                label="Précise"
-                htmlFor="contraindications"
-                hint="Cette information reste confidentielle et sert uniquement à la sécurité de la séance."
-              >
+              <Field label={t.medicalDetail} htmlFor="contraindications" hint={t.medicalDetailHint}>
                 <Textarea
                   id="contraindications"
                   name="contraindications"
                   rows={3}
-                  placeholder="Allergie au latex, traitement anticoagulant…"
+                  placeholder={t.medicalPlaceholder}
                 />
               </Field>
             </motion.div>
           )}
 
           <div className="pt-4 border-t border-[var(--border)] space-y-3.5">
-            <CheckboxField
-              id="isAdult"
-              name="isAdult"
-              label="Je certifie être majeur·e (18 ans révolus)"
-              hint="Une pièce d'identité pourra t'être demandée le jour de la séance."
-            />
+            <CheckboxField id="isAdult" name="isAdult" label={t.adult} hint={t.adultHint} />
             {state.fieldErrors?.isAdult && (
-              <p className="text-xs text-[var(--danger)] ml-7">
-                {state.fieldErrors.isAdult}
-              </p>
+              <p className="text-xs text-[var(--danger)] ml-7">{state.fieldErrors.isAdult}</p>
             )}
 
             <CheckboxField
               id="consentGiven"
               name="consentGiven"
-              label="J'accepte que mes données soient utilisées pour traiter ma demande"
-              hint="Elles ne servent qu'à ça, ne sont jamais transmises à des tiers, et je peux demander leur suppression à tout moment."
+              label={t.consent}
+              hint={t.consentHint}
             />
             {state.fieldErrors?.consentGiven && (
-              <p className="text-xs text-[var(--danger)] ml-7">
-                {state.fieldErrors.consentGiven}
-              </p>
+              <p className="text-xs text-[var(--danger)] ml-7">{state.fieldErrors.consentGiven}</p>
             )}
           </div>
         </CardContent>
       </Card>
 
-      <Button
-        type="submit"
-        variant="primary"
-        size="lg"
-        loading={pending}
-        className="w-full"
-      >
+      <Button type="submit" variant="primary" size="lg" loading={pending} className="w-full">
         <Send />
-        Envoyer ma demande
+        {t.submit}
       </Button>
 
-      <p className="text-center text-[11px] text-[var(--fg-subtle)]">
-        Je te réponds dès que possible.
-      </p>
+      <p className="text-center text-[11px] text-[var(--fg-subtle)]">{t.afterSubmit}</p>
     </form>
   );
 }
@@ -424,11 +409,12 @@ export function RequestForm({
 function ZonePicker({
   value,
   onChange,
+  options,
 }: {
   value: string | null;
   onChange: (value: string) => void;
+  options: { value: string; label: string }[];
 }) {
-  const options = [...BODY_ZONES, { value: "", label: "Je ne sais pas encore" }];
   return (
     <div
       role="radiogroup"

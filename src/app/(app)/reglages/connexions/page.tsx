@@ -5,6 +5,7 @@ import { db, getSettings } from "@/lib/db";
 import { decryptSecret } from "@/lib/crypto";
 import { buildSignature } from "@/lib/mail";
 import { redirectUri, webhookUrl } from "@/lib/instagram";
+import { GEMINI_MODEL } from "@/lib/gemini";
 import { appUrl, getIntegration } from "@/lib/leads";
 import { formatDate, formatRelative } from "@/lib/utils";
 import { PageHeader } from "@/components/ui/misc";
@@ -19,12 +20,13 @@ export default async function ConnexionsPage({
   searchParams: Promise<{ instagram?: string; instagram_erreur?: string }>;
 }) {
   const params = await searchParams;
-  const [gmail, instagram, settings, gmailLeads, instagramLeads] = await Promise.all([
+  const [gmail, instagram, settings, gmailLeads, instagramLeads, gemini] = await Promise.all([
     getIntegration("gmail"),
     getIntegration("instagram"),
     getSettings(),
     db.lead.count({ where: { channel: "email" } }),
     db.lead.count({ where: { channel: "instagram" } }),
+    db.integration.findUnique({ where: { channel: "gemini" } }),
   ]);
 
   // Aucun secret ne quitte le serveur : seulement l'état de la connexion.
@@ -57,8 +59,8 @@ export default async function ConnexionsPage({
             Réglages
           </Link>
         }
-        title="Connexions Instagram & Gmail"
-        description="Réponds automatiquement aux nouvelles personnes qui t'écrivent, avec un lien de demande qui leur est propre."
+        title="Connexions"
+        description="Instagram et Gmail pour répondre aux demandes, Gemini pour lire les factures scannées."
       />
       <ConnexionsView
         gmail={view(gmail, gmailLeads)}
@@ -83,6 +85,11 @@ export default async function ConnexionsPage({
         flash={{
           instagramOk: params.instagram === "ok",
           instagramError: params.instagram_erreur ?? null,
+        }}
+        gemini={{
+          connected: Boolean(decryptSecret(gemini?.secret)),
+          since: gemini?.connectedAt ? formatDate(gemini.connectedAt) : null,
+          model: GEMINI_MODEL,
         }}
       />
     </>

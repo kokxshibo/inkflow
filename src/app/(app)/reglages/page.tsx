@@ -32,7 +32,7 @@ export default async function SettingsPage() {
           <Button asChild variant="secondary" size="sm">
             <Link href="/reglages/connexions">
               <Plug />
-              Connexions Instagram &amp; Gmail
+              Connexions (Instagram, Gmail, IA)
             </Link>
           </Button>
         }

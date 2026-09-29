@@ -113,7 +113,7 @@ export async function saveQuote(
     ]);
     await logActivity("quote.update", `Devis ${existing.number} mis à jour`, "quote", id);
   } else {
-    const number = await nextNumber("quote", settings.quotePrefix);
+    const number = await nextNumber("quote", settings.quotePrefix, db, data.issuedAt);
     const created = await db.quote.create({
       data: {
         ...data,
