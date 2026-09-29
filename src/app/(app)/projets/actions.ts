@@ -14,7 +14,9 @@ const optionalString = z
   .string()
   .trim()
   .transform((value) => (value === "" ? null : value))
-  .nullable();
+  .nullable()
+  // Champ absent du formulaire (masqué car sans objet) : même chose qu'un champ vide.
+  .default(null);
 
 const projectSchema = z.object({
   clientId: z.string().min(1, "Sélectionne un client"),

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
-import { needsSetup } from "@/lib/auth";
+import { needsSetup, setupKeyMatches } from "@/lib/auth";
 import { isDatabaseReady, areMigrationsApplied } from "@/lib/health";
 import { SetupForm } from "./setup-form";
 
@@ -10,13 +10,20 @@ export const metadata: Metadata = {
 };
 export const dynamic = "force-dynamic";
 
-export default async function WelcomePage() {
+export default async function WelcomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ cle?: string }>;
+}) {
   if (!(await isDatabaseReady()) || !(await areMigrationsApplied())) {
     redirect("/installation");
   }
 
   // Route fermée dès qu'un compte existe.
   if (!(await needsSetup())) redirect("/login");
+
+  const { cle } = await searchParams;
+  const allowed = setupKeyMatches(cle);
 
   return (
     <div className="min-h-dvh bg-[var(--bg)] flex flex-col">
@@ -42,7 +49,14 @@ export default async function WelcomePage() {
       </header>
 
       <main className="flex-1 max-w-lg w-full mx-auto px-6 py-10">
-        <SetupForm />
+        {allowed ? (
+          <SetupForm setupKey={cle} />
+        ) : (
+          <p className="text-center text-[14px] text-[var(--fg-muted)] leading-relaxed">
+            Cette installation est protégée. Ouvre le lien d&apos;installation complet
+            (avec sa clé) pour créer ton compte.
+          </p>
+        )}
       </main>
 
       <footer className="border-t border-[var(--border)] py-6">

@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+#
+# Sauvegarde quotidienne d'InkFlow : base (rotation 30 jours) et copie miroir
+# des fichiers envoyés (photos de référence, photos de profil).
+set -euo pipefail
+DEST=/opt/sauvegardes/inkflow
+HORO="$(date +%Y-%m-%d_%Hh%M)"
+mkdir -p "$DEST"
+chmod 700 "$DEST"
+
+# pg_dump écrit d'abord dans son propre dossier : l'utilisateur postgres n'a
+# pas à pouvoir écrire dans l'arborescence des sauvegardes.
+TMP="/var/lib/postgresql/inkflow_$HORO.sql.gz"
+sudo -u postgres bash -c "pg_dump --no-owner --no-acl inkflow | gzip -9 > '$TMP'"
+mv "$TMP" "$DEST/base_$HORO.sql.gz"
+chmod 600 "$DEST/base_$HORO.sql.gz"
+
+# Une sauvegarde vide serait pire que pas de sauvegarde : on vérifie.
+taille=$(stat -c%s "$DEST/base_$HORO.sql.gz")
+if [ "$taille" -lt 1000 ]; then
+    echo "ECHEC : sauvegarde suspecte ($taille octets), conservée pour examen." >&2
+    exit 1
+fi
+find "$DEST" -name 'base_*.sql.gz' -mtime +30 -delete
+
+# Fichiers : copie miroir (seuls les fichiers nouveaux ou modifiés sont copiés).
+mkdir -p "$DEST/uploads"
+cp -a --update /var/lib/inkflow/uploads/. "$DEST/uploads/"
+
+echo "Sauvegarde : $DEST/base_$HORO.sql.gz ($taille octets)"

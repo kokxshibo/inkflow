@@ -5,10 +5,46 @@ Clients, projets, agenda, devis et factures avec **QR-facture suisse**, scan des
 factures fournisseurs, et gestion personnelle (AVS, assurance maladie, impôts).
 
 - **Dépôt** : https://github.com/kokxshibo/inkflow
-- **Production** : https://inkflow-kokxshibos-projects.vercel.app
+- **Production (VPS)** : https://inkflow.51-83-74-6.sslip.io
+- **Ancienne instance (Vercel)** : https://inkflow-kokxshibos-projects.vercel.app
 
 > Le périmètre complet et la feuille de route sont dans
 > [CAHIER-DES-CHARGES.md](CAHIER-DES-CHARGES.md).
+
+---
+
+## 🖥️ Hébergement sur le VPS
+
+L'application tourne sur le VPS OVH, à côté des autres services, avec une
+empreinte réduite : le build autonome de Next (≈ 100 Mo), un service limité à
+768 Mo de mémoire, la base dans le PostgreSQL déjà installé.
+
+| Élément | Emplacement |
+|---|---|
+| Application | `/opt/inkflow/current` (les 2 dernières versions sont gardées) |
+| Configuration et secrets | `/opt/inkflow/inkflow.env` |
+| Fichiers envoyés | `/var/lib/inkflow/uploads`, servis par nginx |
+| Service | `inkflow.service` (port 3010, fuseau Europe/Zurich) |
+| Relève Gmail | `inkflow-sync.timer`, chaque minute |
+| Sauvegarde | `inkflow-backup.timer`, chaque nuit dans `/opt/sauvegardes/inkflow` (30 jours) |
+
+**Mettre à jour** après un commit, depuis Git Bash :
+
+```bash
+bash deploy/deploy.sh
+```
+
+Le code est envoyé, compilé sur le VPS sous l'utilisateur `inkflow`, les
+migrations sont appliquées, puis le service redémarre. Les dépendances de
+compilation sont supprimées à la fin.
+
+**Première installation** (déjà faite) : `sudo bash deploy/setup-vps.sh <domaine>`
+sur le VPS crée l'utilisateur, la base, les secrets, les services, le site nginx
+et le certificat HTTPS. Le compte propriétaire se crée ensuite via
+`/bienvenue?cle=<SETUP_TOKEN>` (clé dans `inkflow.env`) : sans la clé, personne
+d'autre ne peut le créer avant toi.
+
+Journal en cas de souci : `journalctl -u inkflow -n 100`.
 
 ---
 
@@ -116,6 +152,20 @@ automatiquement. Rédaction assistée, aperçu, bouton Envoyer, PDF joint.
 ### Demandes (remplace les DM Instagram)
 Formulaire public à mettre en bio Instagram. Conversion en client + projet en un
 clic, les images de référence suivent.
+
+**Réponses automatiques Instagram et Gmail** (Réglages → Connexions) : quand une
+nouvelle personne écrit au sujet d'un tatouage (mots-clés réglables) et qu'on ne
+lui a encore jamais répondu, elle reçoit une seule fois un petit message perso
+avec **son propre lien de demande** (`/d/<jeton>`). On voit ensuite dans
+*Demandes* qui a cliqué et combien de fois, d'où la personne vient, sa **photo de
+profil et son @pseudo Instagram** (cliquable), et toute la conversation — y
+compris les réponses envoyées depuis le téléphone. Le formulaire s'ouvre
+pré-rempli. Les newsletters, notifications et clients existants sont ignorés.
+
+- **Gmail** : mot de passe d'application Google (IMAP + SMTP), relève chaque minute.
+- **Instagram** : compte professionnel + application Meta (API officielle,
+  webhook). Pour répondre à tout le monde, l'app Meta doit être en mode Live avec
+  l'accès avancé à `instagram_business_manage_messages`.
 
 ### Gestion personnelle 🇨🇭
 | Module | Contenu |
@@ -229,6 +279,6 @@ d'écrire par erreur à un vrai client.
 
 ## Reste à faire
 
-Réception IMAP et détection automatique des réponses clients, décharges signées,
+Réception IMAP de la messagerie générale (hors demandes), décharges signées,
 suivi de cicatrisation automatisé, paiement en ligne TWINT. Détails dans le
 cahier des charges.

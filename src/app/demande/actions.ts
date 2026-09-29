@@ -1,16 +1,19 @@
 "use server";
 
-import { writeFile, mkdir } from "node:fs/promises";
-import path from "node:path";
+import { cookies } from "next/headers";
 import { z } from "zod";
 import { db, getSettings, logActivity } from "@/lib/db";
+import { REF_COOKIE } from "@/lib/leads";
+import { storeBuffer } from "@/lib/storage";
 import { randomToken } from "@/lib/utils";
 
 const optionalString = z
   .string()
   .trim()
   .transform((value) => (value === "" ? null : value))
-  .nullable();
+  .nullable()
+  // Champ absent du formulaire (masqué car sans objet) : même chose qu'un champ vide.
+  .default(null);
 
 const requestSchema = z.object({
   firstName: z.string().trim().min(1, "Ton prénom est requis"),
@@ -87,21 +90,26 @@ export async function submitRequest(
 
   const referenceUrls: string[] = [];
   if (files.length > 0) {
-    const folder = randomToken(12);
-    const uploadDir = path.join(process.cwd(), "public", "uploads", "demandes", folder);
-    await mkdir(uploadDir, { recursive: true });
-
+    const folder = `demandes/${randomToken(12)}`;
     for (const file of files) {
       if (!ALLOWED_TYPES.includes(file.type) || file.size > MAX_SIZE) continue;
       const extension = file.type.split("/")[1]?.replace("jpeg", "jpg") ?? "jpg";
-      const filename = `${randomToken(16)}.${extension}`;
-      await writeFile(
-        path.join(uploadDir, filename),
-        Buffer.from(await file.arrayBuffer()),
+      referenceUrls.push(
+        await storeBuffer(
+          Buffer.from(await file.arrayBuffer()),
+          folder,
+          `${randomToken(16)}.${extension}`,
+        ),
       );
-      referenceUrls.push(`/uploads/demandes/${folder}/${filename}`);
     }
   }
+
+  // Arrivé par un lien perso (Instagram / Gmail) : la demande rejoint le contact.
+  const refToken = String(formData.get("ref") ?? "") || (await cookies()).get(REF_COOKIE)?.value;
+  const lead =
+    refToken && /^[a-z0-9]{6,32}$/.test(refToken)
+      ? await db.lead.findUnique({ where: { token: refToken } })
+      : null;
 
   await db.projectRequest.create({
     data: {
@@ -124,12 +132,21 @@ export async function submitRequest(
       referenceUrls: JSON.stringify(referenceUrls),
       consentGiven: true,
       status: "new",
+      source: lead ? lead.channel : "direct",
+      leadId: lead?.id ?? null,
     },
   });
 
+  // Un contact Instagram n'avait pas encore d'adresse e-mail : on la retient.
+  if (lead && !lead.email) {
+    await db.lead.update({ where: { id: lead.id }, data: { email: input.email.toLowerCase() } });
+  }
+
   await logActivity(
     "request.received",
-    `Nouvelle demande de ${input.firstName} ${input.lastName}`,
+    `Nouvelle demande de ${input.firstName} ${input.lastName}${
+      lead ? (lead.channel === "instagram" ? " (via Instagram)" : " (via Gmail)") : ""
+    }`,
   );
 
   return { success: true };

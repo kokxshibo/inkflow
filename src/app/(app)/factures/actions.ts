@@ -12,7 +12,9 @@ const optionalString = z
   .string()
   .trim()
   .transform((value) => (value === "" ? null : value))
-  .nullable();
+  .nullable()
+  // Champ absent du formulaire (masqué car sans objet) : même chose qu'un champ vide.
+  .default(null);
 
 const invoiceSchema = z.object({
   clientId: z.string().min(1, "Sélectionne un client"),
@@ -158,8 +160,7 @@ const paymentSchema = z.object({
   method: z.string().default("twint"),
   paidAt: z.string().min(1),
   reference: optionalString,
-  // Le formulaire d'encaissement n'envoie pas de note : la clé peut être absente.
-  note: optionalString.optional(),
+  note: optionalString,
 });
 
 export async function recordPayment(

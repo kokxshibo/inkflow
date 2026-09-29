@@ -11,7 +11,9 @@ const optionalString = z
   .string()
   .trim()
   .transform((value) => (value === "" ? null : value))
-  .nullable();
+  .nullable()
+  // Champ absent du formulaire (masqué car sans objet) : même chose qu'un champ vide.
+  .default(null);
 
 const clientSchema = z.object({
   firstName: z.string().trim().min(1, "Le prénom est requis"),

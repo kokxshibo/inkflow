@@ -402,7 +402,83 @@ model ProjectRequest {
   handledAt DateTime?
   createdAt DateTime  @default(now())
 
+  // Provenance : lien perso envoyé en réponse à un message Instagram ou Gmail
+  source String  @default("direct") // direct | instagram | email
+  leadId String?
+  lead   Lead?   @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
   @@index([status])
+  @@index([leadId])
+}
+
+/// Compte externe relié (une ligne par canal : gmail | instagram).
+/// Les secrets sont chiffrés (AES-256-GCM, clé dérivée d'AUTH_SECRET).
+model Integration {
+  channel   String  @id // gmail | instagram
+  autoReply Boolean @default(true)
+
+  account       String? // adresse Gmail ou pseudo Instagram
+  accountId     String? // Instagram : identifiant du compte professionnel
+  accountName   String?
+  accountAvatar String?
+  secret        String? // chiffré : mot de passe d'application Gmail / jeton Instagram
+  tokenExpiresAt DateTime?
+
+  // Instagram : application Meta
+  appId       String?
+  appSecret   String? // chiffré
+  verifyToken String?
+
+  cursor   String? // Gmail : position de relève IMAP (JSON)
+  keywords String  @default("")
+  subject  String?
+  message  String  @default("")
+
+  connectedAt DateTime?
+  lastSyncAt  DateTime?
+  lastError   String?
+  updatedAt   DateTime  @updatedAt
+}
+
+/// Personne qui a écrit sur Instagram ou par e-mail, avec son lien de demande personnel.
+model Lead {
+  id         String @id @default(cuid())
+  channel    String // instagram | email
+  externalId String // Instagram : IGSID · e-mail : adresse en minuscules
+  token      String @unique // lien perso : /d/<token>
+
+  name       String?
+  username   String? // pseudo Instagram
+  email      String?
+  avatarUrl  String? // photo de profil copiée sur le serveur (les liens Instagram expirent)
+
+  autoRepliedAt DateTime?
+  clicks        Int       @default(0)
+  firstClickAt  DateTime?
+  lastClickAt   DateTime?
+  lastMessageAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  messages LeadMessage[]
+  requests ProjectRequest[]
+
+  @@unique([channel, externalId])
+  @@index([lastMessageAt])
+}
+
+model LeadMessage {
+  id         String   @id @default(cuid())
+  leadId     String
+  lead       Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  direction  String // in | out
+  subject    String?
+  body       String
+  externalId String?  @unique // Instagram : mid · e-mail : Message-ID
+  auto       Boolean  @default(false) // réponse automatique
+  sentAt     DateTime @default(now())
+
+  @@index([leadId, sentAt])
 }
 
 model ActivityLog {

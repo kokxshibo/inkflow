@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/field";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-export function SetupForm() {
+export function SetupForm({ setupKey }: { setupKey?: string }) {
   const [state, formAction, pending] = useActionState<SetupState, FormData>(
     completeSetup,
     {},
@@ -20,6 +20,7 @@ export function SetupForm() {
 
   return (
     <form action={formAction} className="space-y-5">
+      {setupKey && <input type="hidden" name="cle" value={setupKey} />}
       {state.error && (
         <div
           role="alert"

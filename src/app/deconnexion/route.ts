@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { destroySession } from "@/lib/auth";
 
-export async function GET(request: Request) {
+export async function GET() {
   await destroySession();
-  return NextResponse.redirect(new URL("/login", request.url));
+  // Adresse relative : correcte derrière nginx, quel que soit le domaine.
+  return new NextResponse(null, { status: 307, headers: { Location: "/login" } });
 }

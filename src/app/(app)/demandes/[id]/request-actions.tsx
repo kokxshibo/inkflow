@@ -12,6 +12,7 @@ import {
   XCircle,
   Mail,
   ExternalLink,
+  Instagram,
 } from "lucide-react";
 import { convertRequest, deleteRequest, setRequestStatus } from "../actions";
 import { Button } from "@/components/ui/button";
@@ -25,7 +26,14 @@ import {
   DropdownTrigger,
 } from "@/components/ui/dialog";
 
-export function RequestActions({ request }: { request: ProjectRequest }) {
+export function RequestActions({
+  request,
+  instagramUrl,
+}: {
+  request: ProjectRequest;
+  /** Profil Instagram de la personne, s'il est connu. */
+  instagramUrl?: string | null;
+}) {
   const [confirmDelete, setConfirmDelete] = React.useState(false);
   const [pending, startTransition] = React.useTransition();
 
@@ -98,6 +106,13 @@ export function RequestActions({ request }: { request: ProjectRequest }) {
                 <Mail /> Répondre par e-mail
               </a>
             </DropdownItem>
+            {instagramUrl && (
+              <DropdownItem asChild>
+                <a href={instagramUrl} target="_blank" rel="noopener noreferrer">
+                  <Instagram /> Voir son profil Instagram
+                </a>
+              </DropdownItem>
+            )}
 
             <DropdownSeparator />
             <DropdownItem destructive onSelect={() => setConfirmDelete(true)}>

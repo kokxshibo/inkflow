@@ -1,0 +1,2 @@
+# Scripts et configuration du VPS : fins de ligne Unix obligatoires (bash, systemd, nginx).
+deploy/** text eol=lf

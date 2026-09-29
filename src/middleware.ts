@@ -21,10 +21,23 @@ const PUBLIC_PREFIXES = [
   "/installation",
   "/bienvenue",
   "/demande",
+  "/d", // lien perso envoyé par Instagram / Gmail : /d/<jeton>
   "/devis-public",
   "/facture-publique",
   "/deconnexion",
 ];
+
+/**
+ * Derrière nginx (VPS), request.url porte « localhost » : l'adresse de
+ * redirection est reconstruite à partir du domaine réellement demandé.
+ */
+function redirectTo(request: NextRequest, path: string) {
+  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+  const protocol =
+    request.headers.get("x-forwarded-proto")?.split(",")[0].trim() ??
+    request.nextUrl.protocol.replace(":", "");
+  return NextResponse.redirect(new URL(path, host ? `${protocol}://${host}` : request.url));
+}
 
 function isPublic(pathname: string) {
   return PUBLIC_PREFIXES.some(
@@ -44,16 +57,17 @@ export async function middleware(request: NextRequest) {
   if (isPublic(pathname)) {
     // Déjà connecté : la page de connexion n'a plus de raison d'être.
     if (session && pathname === "/login") {
-      return NextResponse.redirect(new URL("/tableau-de-bord", request.url));
+      return redirectTo(request, "/tableau-de-bord");
     }
     return NextResponse.next();
   }
 
   if (!session) {
-    const target = new URL("/login", request.url);
     // Mémorise la page demandée pour y revenir après connexion.
-    if (pathname !== "/") target.searchParams.set("suite", pathname + search);
-    return NextResponse.redirect(target);
+    return redirectTo(
+      request,
+      pathname === "/" ? "/login" : `/login?${new URLSearchParams({ suite: pathname + search })}`,
+    );
   }
 
   const response = NextResponse.next();

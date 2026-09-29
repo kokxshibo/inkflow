@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { getSettings } from "@/lib/db";
+import { db, getSettings } from "@/lib/db";
 import { isDatabaseReady } from "@/lib/health";
-import { RequestForm } from "./request-form";
+import { REF_COOKIE, firstNameOf } from "@/lib/leads";
+import { RequestForm, type RequestPrefill } from "./request-form";
 
 export const dynamic = "force-dynamic";
 
@@ -17,10 +19,37 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function PublicRequestPage() {
+export default async function PublicRequestPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ref?: string }>;
+}) {
   if (!(await isDatabaseReady())) redirect("/installation");
 
   const settings = await getSettings();
+
+  // Lien perso (/d/<jeton>) : on sait déjà qui écrit et depuis où.
+  const token = (await searchParams).ref ?? (await cookies()).get(REF_COOKIE)?.value;
+  const lead =
+    token && /^[a-z0-9]{6,32}$/.test(token)
+      ? await db.lead.findUnique({ where: { token } })
+      : null;
+
+  const prefill: RequestPrefill = {};
+  if (lead) {
+    const firstName = firstNameOf(lead.name);
+    prefill.firstName = firstName || undefined;
+    // Le reste du nom affiché, s'il ressemble à un nom (pas d'emoji ni de pseudo).
+    const rest = lead.name?.trim().split(/\s+/).slice(1).join(" ") ?? "";
+    prefill.lastName = firstName && /^[\p{L}' -]+$/u.test(rest) ? rest : undefined;
+    prefill.email = lead.email ?? undefined;
+    prefill.instagram = lead.username ?? undefined;
+  }
+  const greeting = lead
+    ? `${prefill.firstName ? `Salut ${prefill.firstName} ! ` : ""}Suite à ton message ${
+        lead.channel === "instagram" ? "sur Instagram" : "par e-mail"
+      }, voici le formulaire pour me présenter ton projet.`
+    : null;
 
   return (
     <div className="min-h-dvh bg-[var(--bg)]">
@@ -40,14 +69,18 @@ export default async function PublicRequestPage() {
             Parle-moi de ton projet
           </h1>
           <p className="mt-4 text-[15px] text-[var(--fg-muted)] leading-relaxed max-w-lg mx-auto">
-            Remplis ce formulaire plutôt que de m&apos;écrire en message privé : je reçois
-            tout au même endroit, rien ne se perd, et je te réponds plus vite.
+            {greeting ??
+              "Remplis ce formulaire plutôt que de m'écrire en message privé : je reçois tout au même endroit, rien ne se perd, et je te réponds plus vite."}
           </p>
         </div>
       </header>
 
       <main className="max-w-2xl mx-auto px-6 py-10 sm:py-14">
-        <RequestForm studioName={settings.studioName} />
+        <RequestForm
+          studioName={settings.studioName}
+          refToken={lead?.token}
+          prefill={prefill}
+        />
       </main>
 
       <footer className="border-t border-[var(--border)] py-8">

@@ -27,7 +27,23 @@ const BUDGETS = [
   "Je ne sais pas encore",
 ];
 
-export function RequestForm({ studioName }: { studioName: string }) {
+export interface RequestPrefill {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  instagram?: string;
+}
+
+export function RequestForm({
+  studioName,
+  refToken,
+  prefill = {},
+}: {
+  studioName: string;
+  /** Jeton du lien perso : rattache la demande à la conversation Instagram / Gmail. */
+  refToken?: string;
+  prefill?: RequestPrefill;
+}) {
   const [state, formAction, pending] = useActionState<RequestFormState, FormData>(
     submitRequest,
     {},
@@ -85,6 +101,8 @@ export function RequestForm({ studioName }: { studioName: string }) {
 
   return (
     <form action={formAction} className="space-y-5">
+      {refToken && <input type="hidden" name="ref" value={refToken} />}
+
       {/* Piège anti-robot : invisible pour les humains */}
       <input
         type="text"
@@ -112,10 +130,22 @@ export function RequestForm({ studioName }: { studioName: string }) {
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <Field label="Prénom" htmlFor="firstName" required error={state.fieldErrors?.firstName}>
-            <Input id="firstName" name="firstName" required placeholder="Léa" />
+            <Input
+              id="firstName"
+              name="firstName"
+              required
+              placeholder="Léa"
+              defaultValue={prefill.firstName}
+            />
           </Field>
           <Field label="Nom" htmlFor="lastName" required error={state.fieldErrors?.lastName}>
-            <Input id="lastName" name="lastName" required placeholder="Morand" />
+            <Input
+              id="lastName"
+              name="lastName"
+              required
+              placeholder="Morand"
+              defaultValue={prefill.lastName}
+            />
           </Field>
           <Field label="E-mail" htmlFor="email" required error={state.fieldErrors?.email}>
             <Input
@@ -124,13 +154,19 @@ export function RequestForm({ studioName }: { studioName: string }) {
               type="email"
               required
               placeholder="lea.morand@example.ch"
+              defaultValue={prefill.email}
             />
           </Field>
           <Field label="Téléphone" htmlFor="phone" hint="Facultatif">
             <Input id="phone" name="phone" type="tel" placeholder="+41 79 123 45 67" />
           </Field>
           <Field label="Instagram" htmlFor="instagram" hint="Facultatif, sans le @">
-            <Input id="instagram" name="instagram" placeholder="lea.morand" />
+            <Input
+              id="instagram"
+              name="instagram"
+              placeholder="lea.morand"
+              defaultValue={prefill.instagram}
+            />
           </Field>
           <Field label="Date de naissance" htmlFor="birthDate" hint="Facultatif">
             <Input

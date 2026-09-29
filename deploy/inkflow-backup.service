@@ -1,0 +1,6 @@
+[Unit]
+Description=Sauvegarde de la base et des fichiers InkFlow
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/inkflow-backup

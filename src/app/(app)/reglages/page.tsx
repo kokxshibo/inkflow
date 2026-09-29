@@ -1,8 +1,11 @@
+import Link from "next/link";
 import type { Metadata } from "next";
+import { Plug } from "lucide-react";
 import { db, getSettings } from "@/lib/db";
 import { isSmtpConfigured } from "@/lib/mail";
 import { formatCHF } from "@/lib/money";
 import { PageHeader } from "@/components/ui/misc";
+import { Button } from "@/components/ui/button";
 import { SettingsForm } from "./settings-form";
 
 export const metadata: Metadata = { title: "Réglages" };
@@ -25,6 +28,14 @@ export default async function SettingsPage() {
       <PageHeader
         title="Réglages"
         description="Identité du salon, TVA, coordonnées bancaires et facturation."
+        actions={
+          <Button asChild variant="secondary" size="sm">
+            <Link href="/reglages/connexions">
+              <Plug />
+              Connexions Instagram &amp; Gmail
+            </Link>
+          </Button>
+        }
       />
       <SettingsForm
         settings={{

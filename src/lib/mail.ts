@@ -69,7 +69,7 @@ export async function sendMail({
 }
 
 /** Conversion texte → HTML simple, avec échappement. */
-function textToHtml(text: string) {
+export function textToHtml(text: string) {
   const escaped = text
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")

@@ -4,6 +4,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db, logActivity } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
+import { sendLinkByEmail } from "@/lib/gmail";
+import { refreshLeadProfile, sendLinkByInstagram } from "@/lib/instagram";
+import { removeFile } from "@/lib/storage";
 
 export async function setRequestStatus(id: string, status: string) {
   await requireSession();
@@ -30,7 +33,7 @@ export async function deleteRequest(id: string) {
 export async function convertRequest(id: string) {
   await requireSession();
 
-  const request = await db.projectRequest.findUnique({ where: { id } });
+  const request = await db.projectRequest.findUnique({ where: { id }, include: { lead: true } });
   if (!request) throw new Error("Demande introuvable");
   if (request.clientId && request.projectId) {
     redirect(`/projets/${request.projectId}`);
@@ -48,9 +51,10 @@ export async function convertRequest(id: string) {
         lastName: request.lastName,
         email: request.email,
         phone: request.phone,
-        instagram: request.instagram?.replace(/^@/, "") ?? null,
+        // Le pseudo vu dans la conversation Instagram prime sur celui saisi à la main.
+        instagram: request.lead?.username ?? request.instagram?.replace(/^@/, "") ?? null,
         birthDate: request.birthDate,
-        source: "website",
+        source: request.source === "instagram" ? "instagram" : "website",
         status: "prospect",
         medicalNotes: request.hasContraindications ? request.contraindications : null,
         medicalUpdatedAt: request.hasContraindications ? new Date() : null,
@@ -124,4 +128,53 @@ export async function convertRequest(id: string) {
   revalidatePath("/tableau-de-bord");
 
   redirect(`/projets/${project.id}`);
+}
+
+/* ─────────────────── Contacts Instagram / Gmail ─────────────────── */
+
+export interface LeadActionResult {
+  error?: string;
+}
+
+function revalidateLead(id: string) {
+  revalidatePath("/demandes");
+  revalidatePath(`/demandes/contacts/${id}`);
+}
+
+/** Envoie (ou renvoie) le lien de demande perso au contact, sur son canal. */
+export async function sendLeadLink(id: string): Promise<LeadActionResult> {
+  await requireSession();
+  const lead = await db.lead.findUnique({ where: { id } });
+  if (!lead) return { error: "Contact introuvable." };
+  try {
+    if (lead.channel === "instagram") await sendLinkByInstagram(id);
+    else await sendLinkByEmail(id);
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Envoi impossible." };
+  }
+  revalidateLead(id);
+  return {};
+}
+
+/** Relit le pseudo, le nom et la photo de profil Instagram. */
+export async function refreshLeadProfileAction(id: string): Promise<LeadActionResult> {
+  await requireSession();
+  try {
+    await refreshLeadProfile(id);
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Actualisation impossible." };
+  }
+  revalidateLead(id);
+  return {};
+}
+
+export async function deleteLead(id: string) {
+  await requireSession();
+  const lead = await db.lead.findUnique({ where: { id } });
+  if (!lead) redirect("/demandes");
+  await db.lead.delete({ where: { id } });
+  if (lead.avatarUrl) await removeFile(lead.avatarUrl);
+  await logActivity("lead.delete", `Contact supprimé : ${lead.username ?? lead.email ?? lead.name ?? lead.externalId}`);
+  revalidatePath("/demandes");
+  redirect("/demandes");
 }

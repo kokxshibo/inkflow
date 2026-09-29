@@ -1,0 +1,11 @@
+[Unit]
+Description=InkFlow - relève Gmail et renouvellement du jeton Instagram
+After=inkflow.service
+Requires=inkflow.service
+
+[Service]
+Type=oneshot
+User=inkflow
+Group=inkflow
+EnvironmentFile=/opt/inkflow/inkflow.env
+ExecStart=/usr/bin/curl -fsS -m 110 -o /dev/null -X POST -H "Authorization: Bearer ${CRON_SECRET}" http://127.0.0.1:3010/api/integrations/sync

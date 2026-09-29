@@ -1,6 +1,7 @@
 import "server-only";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { timingSafeEqual } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { db } from "./db";
 import {
@@ -66,4 +67,16 @@ export function hashPassword(password: string) {
 /** Aucun compte en base : l'application n'a pas encore été configurée. */
 export async function needsSetup(): Promise<boolean> {
   return (await db.user.count()) === 0;
+}
+
+/**
+ * Clé d'installation. Sur un serveur public, SETUP_TOKEN empêche un inconnu
+ * de créer le compte propriétaire avant toi : /bienvenue exige alors ?cle=….
+ * Sans SETUP_TOKEN (Vercel, local), la page reste ouverte comme avant.
+ */
+export function setupKeyMatches(key: unknown): boolean {
+  const expected = process.env.SETUP_TOKEN;
+  if (!expected) return true;
+  if (typeof key !== "string" || key.length !== expected.length) return false;
+  return timingSafeEqual(Buffer.from(key), Buffer.from(expected));
 }

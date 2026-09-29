@@ -5,10 +5,10 @@ import {
   ChevronLeft,
   Mail,
   Phone,
-  Instagram,
   ShieldAlert,
   HeartPulse,
   Images,
+  MessagesSquare,
 } from "lucide-react";
 import { db } from "@/lib/db";
 import { formatDate, formatRelative, initials, isMinor, age, parseJsonArray } from "@/lib/utils";
@@ -23,6 +23,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/badge";
 import { Avatar, DataRow, PageHeader } from "@/components/ui/misc";
 import { RequestActions } from "./request-actions";
+import {
+  ChannelBadge,
+  InstagramHandle,
+  LeadConversation,
+  LeadProgress,
+  instagramProfileUrl,
+} from "../lead-ui";
 
 export const metadata: Metadata = { title: "Demande" };
 export const dynamic = "force-dynamic";
@@ -35,12 +42,18 @@ export default async function RequestDetailPage({
   const { id } = await params;
   const request = await db.projectRequest.findUnique({
     where: { id },
-    include: { client: true },
+    include: {
+      client: true,
+      lead: { include: { messages: { orderBy: { sentAt: "asc" } } } },
+    },
   });
 
   if (!request) notFound();
 
   const references = parseJsonArray(request.referenceUrls);
+  const lead = request.lead;
+  // Le pseudo vu dans la conversation Instagram prime sur celui saisi dans le formulaire.
+  const instagram = lead?.username ?? request.instagram?.replace(/^@/, "") ?? null;
   const minor = !request.isAdult || isMinor(request.birthDate);
   const years = age(request.birthDate);
 
@@ -58,13 +71,18 @@ export default async function RequestDetailPage({
         }
         title={
           <span className="flex items-center gap-3">
-            <Avatar initials={initials(request.firstName, request.lastName)} size="lg" />
+            <Avatar
+              src={lead?.avatarUrl}
+              initials={initials(request.firstName, request.lastName)}
+              size="lg"
+            />
             <span className="min-w-0">
               <span className="block truncate">
                 {request.firstName} {request.lastName}
               </span>
-              <span className="flex items-center gap-2 mt-1.5">
+              <span className="flex flex-wrap items-center gap-2 mt-1.5">
                 <StatusBadge options={REQUEST_STATUS} value={request.status} size="md" />
+                {lead && <ChannelBadge channel={lead.channel} />}
                 <span className="text-[12px] text-[var(--fg-subtle)] font-normal">
                   reçue {formatRelative(request.createdAt)}
                 </span>
@@ -72,7 +90,7 @@ export default async function RequestDetailPage({
             </span>
           </span>
         }
-        actions={<RequestActions request={request} />}
+        actions={<RequestActions request={request} instagramUrl={instagram ? instagramProfileUrl(instagram) : null} />}
       />
 
       {minor && (
@@ -153,6 +171,26 @@ export default async function RequestDetailPage({
               </CardContent>
             </Card>
           )}
+
+          {lead && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MessagesSquare className="size-4 text-[var(--fg-subtle)]" />
+                  Conversation {lead.channel === "instagram" ? "Instagram" : "Gmail"}
+                </CardTitle>
+                <Link
+                  href={`/demandes/contacts/${lead.id}`}
+                  className="text-[12px] text-[var(--accent)] hover:underline"
+                >
+                  Fiche du contact
+                </Link>
+              </CardHeader>
+              <CardContent>
+                <LeadConversation messages={lead.messages} channel={lead.channel} />
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         <div className="space-y-5 order-1 lg:order-2">
@@ -177,19 +215,43 @@ export default async function RequestDetailPage({
                   {request.phone}
                 </a>
               )}
-              {request.instagram && (
-                <a
-                  href={`https://instagram.com/${request.instagram.replace(/^@/, "")}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2.5 text-[13px] text-[var(--fg-muted)] hover:text-[var(--accent)] transition-colors"
-                >
-                  <Instagram className="size-4 shrink-0 text-[var(--fg-subtle)]" />@
-                  {request.instagram.replace(/^@/, "")}
-                </a>
+              {instagram && (
+                <InstagramHandle
+                  username={instagram}
+                  className="gap-2.5 text-[13px] text-[var(--fg-muted)] [&_svg]:size-4 [&_svg]:text-[var(--fg-subtle)]"
+                />
               )}
             </CardContent>
           </Card>
+
+          {lead && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Provenance</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <dl>
+                  <DataRow label="Canal">
+                    <ChannelBadge channel={lead.channel} />
+                  </DataRow>
+                  <DataRow label="Premier message">
+                    {formatDate(lead.messages[0]?.sentAt ?? lead.createdAt)}
+                  </DataRow>
+                  {lead.autoRepliedAt && (
+                    <DataRow label="Lien envoyé">{formatDate(lead.autoRepliedAt)}</DataRow>
+                  )}
+                  <DataRow label="Lien ouvert">
+                    {lead.clicks > 0
+                      ? `${lead.clicks} fois${lead.firstClickAt ? `, dès le ${formatDate(lead.firstClickAt)}` : ""}`
+                      : "Pas encore"}
+                  </DataRow>
+                  <DataRow label="Suivi">
+                    <LeadProgress lead={lead} hasRequest />
+                  </DataRow>
+                </dl>
+              </CardContent>
+            </Card>
+          )}
 
           <Card>
             <CardHeader>

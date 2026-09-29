@@ -1,0 +1,38 @@
+[Unit]
+Description=InkFlow (Next.js) - gestion du salon de tatouage
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=inkflow
+Group=inkflow
+WorkingDirectory=/opt/inkflow/current
+# Fichier simple CLE=valeur (sans guillemets), lu aussi par le script de build.
+EnvironmentFile=/opt/inkflow/inkflow.env
+Environment=NODE_ENV=production
+Environment=PORT=3010
+Environment=HOSTNAME=127.0.0.1
+# Le VPS est en UTC : les heures affichées (rendez-vous, messages) sont suisses.
+Environment=TZ=Europe/Zurich
+# Fichiers envoyés (photos, références) : hors de l'application, servis par nginx.
+Environment=UPLOAD_DIR=/var/lib/inkflow/uploads
+ExecStart=/usr/bin/node /opt/inkflow/current/server.js
+Restart=always
+RestartSec=5
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/inkflow
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
+# Petite empreinte : le serveur Minecraft reste prioritaire sur la mémoire.
+MemoryHigh=384M
+MemoryMax=768M
+
+[Install]
+WantedBy=multi-user.target

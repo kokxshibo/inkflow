@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { createSession, hashPassword, needsSetup } from "@/lib/auth";
+import { createSession, hashPassword, needsSetup, setupKeyMatches } from "@/lib/auth";
 import { DEFAULT_EMAIL_TEMPLATES } from "@/lib/default-templates";
 
 const schema = z
@@ -36,6 +36,9 @@ export async function completeSetup(
 ): Promise<SetupState> {
   if (!(await needsSetup())) {
     redirect("/login");
+  }
+  if (!setupKeyMatches(formData.get("cle"))) {
+    return { error: "Lien d'installation invalide. Utilise le lien complet qui t'a été donné." };
   }
 
   const parsed = schema.safeParse(Object.fromEntries(formData.entries()));

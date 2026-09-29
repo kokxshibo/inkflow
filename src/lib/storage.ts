@@ -8,7 +8,8 @@ import { randomToken } from "./utils";
  * Stockage des fichiers téléversés.
  *
  * Sur Vercel, le système de fichiers est en lecture seule : les fichiers vont
- * dans Vercel Blob. En local (sans jeton Blob), ils vont dans public/uploads/.
+ * dans Vercel Blob. Sinon ils vont sur le disque, dans UPLOAD_DIR (sur le VPS,
+ * servi directement par nginx sous /uploads/) ou à défaut dans public/uploads/.
  * L'appelant n'a pas à savoir lequel des deux est utilisé.
  */
 
@@ -18,6 +19,27 @@ const MAX_SIZE = 12 * 1024 * 1024; // 12 Mo
 
 export function isBlobConfigured() {
   return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+}
+
+/**
+ * Dossier disque correspondant à l'URL /uploads/. En production, Next ne sert
+ * pas les fichiers ajoutés à public/ après le build : sur le VPS, UPLOAD_DIR
+ * pointe vers un dossier que nginx sert lui-même.
+ */
+export function uploadRoot() {
+  return process.env.UPLOAD_DIR || path.join(process.cwd(), "public", "uploads");
+}
+
+/** Écrit un contenu déjà en mémoire sur le disque et renvoie son URL /uploads/… */
+export async function storeBuffer(
+  content: Buffer,
+  folder: string,
+  filename: string,
+): Promise<string> {
+  const directory = path.join(uploadRoot(), folder);
+  await mkdir(directory, { recursive: true });
+  await writeFile(path.join(directory, filename), content);
+  return `/uploads/${folder}/${filename}`;
 }
 
 export interface StoredFile {
@@ -90,16 +112,11 @@ export async function storeFile(
     );
   }
 
-  // Repli local : public/uploads/<folder>/<filename>
-  const directory = path.join(process.cwd(), "public", "uploads", folder);
-  await mkdir(directory, { recursive: true });
-  await writeFile(
-    path.join(directory, filename),
-    Buffer.from(await file.arrayBuffer()),
-  );
+  // Disque : <uploadRoot>/<folder>/<filename>
+  const url = await storeBuffer(Buffer.from(await file.arrayBuffer()), folder, filename);
 
   return {
-    url: `/uploads/${key}`,
+    url,
     name: file.name,
     contentType: file.type,
     size: file.size,
@@ -114,7 +131,7 @@ export async function removeFile(url: string): Promise<void> {
       return;
     }
     const relative = url.replace(/^\/uploads\//, "");
-    await unlink(path.join(process.cwd(), "public", "uploads", relative));
+    await unlink(path.join(uploadRoot(), relative));
   } catch {
     // Fichier déjà absent ou stockage indisponible : sans conséquence.
   }
