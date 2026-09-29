@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import {
   AlertCircle,
   Save,
-  Building2,
+  UserRound,
   Percent,
   Landmark,
   ReceiptText,
@@ -57,7 +57,7 @@ export function SettingsForm({
     {},
   );
   const formRef = React.useRef<HTMLFormElement>(null);
-  const { tab, setTab } = useFormTabs("studio", formRef, state);
+  const { tab, setTab } = useFormTabs("profil", formRef, state);
   const [vatEnabled, setVatEnabled] = React.useState(settings.vatEnabled);
   const [iban, setIban] = React.useState(settings.iban ?? "");
   const [qrIban, setQrIban] = React.useState(settings.qrIban ?? "");
@@ -87,9 +87,9 @@ export function SettingsForm({
 
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="w-full sm:w-auto overflow-x-auto">
-            <TabsTrigger value="studio">
-              <Building2 />
-              Salon
+            <TabsTrigger value="profil">
+              <UserRound />
+              Profil
             </TabsTrigger>
             <TabsTrigger value="vat">
               <Percent />
@@ -109,8 +109,8 @@ export function SettingsForm({
             </TabsTrigger>
           </TabsList>
 
-          {/* ─────────────── Salon ─────────────── */}
-          <TabsContent value="studio" className="space-y-5">
+          {/* ─────────────── Profil ─────────────── */}
+          <TabsContent value="profil" className="space-y-5">
             <Card>
               <CardHeader>
                 <CardTitle>Identité</CardTitle>
@@ -120,16 +120,21 @@ export function SettingsForm({
                 </p>
               </CardHeader>
               <CardContent className="grid gap-4 sm:grid-cols-2">
-                <Field label="Nom du salon" htmlFor="studioName" required>
+                <Field
+                  label="Nom d'artiste"
+                  htmlFor="studioName"
+                  required
+                  hint="Affiché sur tes devis, tes factures et ton formulaire de demande."
+                >
                   <Input
                     id="studioName"
                     name="studioName"
                     required
                     defaultValue={settings.studioName}
-                    placeholder="Encre Noire Tattoo"
+                    placeholder="Marc Ink"
                   />
                 </Field>
-                <Field label="Nom du tatoueur" htmlFor="ownerName">
+                <Field label="Prénom et nom" htmlFor="ownerName">
                   <Input
                     id="ownerName"
                     name="ownerName"
@@ -168,7 +173,11 @@ export function SettingsForm({
 
             <Card>
               <CardHeader>
-                <CardTitle>Adresse et contact</CardTitle>
+                <CardTitle>Adresse de facturation et contact</CardTitle>
+                <p className="text-[13px] text-[var(--fg-muted)]">
+                  L&apos;adresse imprimée sur tes devis, tes factures et la QR-facture : la
+                  tienne, ou celle de l&apos;endroit où tu tatoues.
+                </p>
               </CardHeader>
               <CardContent className="grid gap-4 sm:grid-cols-6">
                 <Field label="Rue et numéro" htmlFor="addressLine" className="sm:col-span-6">
@@ -211,7 +220,7 @@ export function SettingsForm({
                     name="email"
                     type="email"
                     defaultValue={settings.email}
-                    placeholder="contact@monsalon.ch"
+                    placeholder="contact@tonnom.ch"
                   />
                 </Field>
                 <Field label="Téléphone" htmlFor="phone" className="sm:col-span-3">
@@ -228,7 +237,7 @@ export function SettingsForm({
                     id="website"
                     name="website"
                     defaultValue={settings.website ?? ""}
-                    placeholder="https://monsalon.ch"
+                    placeholder="https://tonnom.ch"
                   />
                 </Field>
                 <Field
@@ -241,7 +250,7 @@ export function SettingsForm({
                     id="instagram"
                     name="instagram"
                     defaultValue={settings.instagram ?? ""}
-                    placeholder="monsalon.tattoo"
+                    placeholder="ton.pseudo"
                   />
                 </Field>
                 <input type="hidden" name="country" value={settings.country} />
@@ -603,7 +612,7 @@ export function SettingsForm({
                     name="emailSignature"
                     rows={5}
                     defaultValue={settings.emailSignature ?? ""}
-                    placeholder={"Marc\nEncre Noire Tattoo\nRue du Rhône 12, 1204 Genève\n+41 22 123 45 67"}
+                    placeholder={"Marc Ducrey\nMarc Ink\nRue du Rhône 12, 1204 Genève\n+41 79 123 45 67"}
                   />
                 </Field>
                 <Field
@@ -627,7 +636,7 @@ export function SettingsForm({
                     id="aftercareUrl"
                     name="aftercareUrl"
                     defaultValue={settings.aftercareUrl ?? ""}
-                    placeholder="https://monsalon.ch/soins"
+                    placeholder="https://tonnom.ch/soins"
                   />
                 </Field>
               </CardContent>

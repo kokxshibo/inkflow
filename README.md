@@ -1,6 +1,6 @@
 # InkFlow 🇨🇭
 
-Application de gestion pour salon de tatouage — **Suisse, tout en CHF**.
+Application de gestion pour tatoueur indépendant — **Suisse, tout en CHF**.
 Clients, projets, agenda, devis et factures avec **QR-facture suisse**, scan des
 factures fournisseurs, et gestion personnelle (AVS, assurance maladie, impôts).
 
@@ -162,6 +162,12 @@ profil et son @pseudo Instagram** (cliquable), et toute la conversation — y
 compris les réponses envoyées depuis le téléphone. Le formulaire s'ouvre
 pré-rempli. Les newsletters, notifications et clients existants sont ignorés.
 
+**Répondre depuis l'app** : dans la fiche du contact (ou de sa demande), le
+message écrit part tout seul sur le bon canal — message privé Instagram ou e-mail
+dans le même fil Gmail, signature ajoutée. La liste « Conversations » signale les
+non-lus et ce qui attend une réponse ; le badge *Demandes* du menu les compte.
+Instagram n'accepte une réponse que dans les 24 h qui suivent le dernier message de la personne.
+
 - **Gmail** : mot de passe d'application Google (IMAP + SMTP), relève chaque minute.
 - **Instagram** : compte professionnel + application Meta (API officielle,
   webhook). Pour répondre à tout le monde, l'app Meta doit être en mode Live avec
@@ -196,7 +202,7 @@ pré-rempli. Les newsletters, notifications et clients existants sont ignorés.
 | Conservation | 10 ans (art. 958f CO) |
 | Protection des données | nLPD, au niveau d'exigence du RGPD |
 
-> ⚠️ **Ne jamais afficher de TVA tant que le salon n'est pas inscrit à l'AFC.**
+> ⚠️ **Ne jamais afficher de TVA tant que l'activité n'est pas inscrite à l'AFC.**
 > ⚠️ **Tester la QR-facture** en scannant un PDF généré avec une vraie
 > application bancaire suisse avant la mise en production.
 > ⚠️ Les taux AVS, plafonds LAMal et barèmes fiscaux **changent chaque année** :
@@ -217,7 +223,7 @@ Il faut un PostgreSQL. Le plus simple : réutiliser l'URL de la base Neon
 créée pour Vercel (onglet **Storage** → `.env.local`).
 
 Le seed crée un compte de démonstration :
-`tatoueur@monsalon.ch` / `InkFlow2026!`
+`tatoueur@exemple.ch` / `InkFlow2026!`
 
 En production, pas de seed : la page **/bienvenue** crée le compte propriétaire.
 

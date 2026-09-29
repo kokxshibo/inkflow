@@ -33,21 +33,22 @@ export function SetupForm({ setupKey }: { setupKey?: string }) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Le salon</CardTitle>
+          <CardTitle>Ton activité</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <Field
-            label="Nom du salon"
+            label="Nom d'artiste"
             htmlFor="studioName"
             required
             error={state.fieldErrors?.studioName}
+            hint="Affiché sur tes devis, tes factures et ton formulaire de demande."
           >
             <Input
               id="studioName"
               name="studioName"
               required
               autoFocus
-              placeholder="Encre Noire Tattoo"
+              placeholder="Marc Ink"
             />
           </Field>
 

@@ -6,7 +6,7 @@ import type { MetadataRoute } from "next";
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "InkFlow — Gestion de salon",
+    name: "InkFlow — Gestion pour tatoueur",
     short_name: "InkFlow",
     description:
       "Clients, projets, rendez-vous, devis, factures en CHF et gestion personnelle.",

@@ -1,15 +1,16 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { Sparkles, Instagram, ExternalLink, ShieldAlert, Plug, MessagesSquare } from "lucide-react";
+import { Sparkles, Instagram, ExternalLink, ShieldAlert, Plug, MessagesSquare, Mail } from "lucide-react";
 import { db } from "@/lib/db";
 import { formatRelative, initials, truncate, isMinor } from "@/lib/utils";
-import { BODY_ZONES, COLOR_MODE, REQUEST_STATUS, labelOf } from "@/lib/constants";
+import { ALL_BODY_ZONES, COLOR_MODE, REQUEST_STATUS, labelOf } from "@/lib/constants";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge, StatusBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, EmptyState, PageHeader } from "@/components/ui/misc";
 import { ListToolbar } from "@/components/list-toolbar";
 import { CopyLink } from "./copy-link";
+import { LiveRefresh } from "./lead-composer";
 import {
   ChannelBadge,
   InstagramHandle,
@@ -55,36 +56,37 @@ export default async function RequestsPage({
 
   const newCount = await db.projectRequest.count({ where: { status: "new" } });
 
-  // Personnes qui ont écrit sur Instagram / Gmail et n'ont pas encore rempli le formulaire.
-  const waitingLeads = params.statut
+  // Conversations Instagram / Gmail, la plus récente en premier.
+  const conversations = params.statut
     ? []
     : await db.lead.findMany({
-        where: {
-          requests: { none: {} },
-          ...(query
-            ? {
-                OR: [
-                  { name: { contains: query, mode: "insensitive" } },
-                  { username: { contains: query, mode: "insensitive" } },
-                  { email: { contains: query, mode: "insensitive" } },
-                ],
-              }
-            : {}),
-        },
+        where: query
+          ? {
+              OR: [
+                { name: { contains: query, mode: "insensitive" } },
+                { username: { contains: query, mode: "insensitive" } },
+                { email: { contains: query, mode: "insensitive" } },
+              ],
+            }
+          : {},
         include: {
           messages: {
-            where: { direction: "in" },
             orderBy: { sentAt: "desc" },
             take: 1,
-            select: { body: true },
+            select: { body: true, direction: true, auto: true },
           },
+          _count: { select: { requests: true } },
         },
-        orderBy: { lastMessageAt: "desc" },
+        orderBy: { lastMessageAt: { sort: "desc", nulls: "last" } },
         take: 30,
       });
+  const isUnread = (lead: (typeof conversations)[number]) =>
+    Boolean(lead.lastIncomingAt && (!lead.lastReadAt || lead.lastReadAt < lead.lastIncomingAt));
+  const unreadCount = conversations.filter(isUnread).length;
 
   return (
     <>
+      <LiveRefresh every={30_000} />
       <PageHeader
         title="Demandes reçues"
         description={
@@ -129,6 +131,97 @@ export default async function RequestsPage({
           },
         ]}
       />
+
+      {conversations.length > 0 && (
+        <section className="mb-8">
+          <h2 className="flex items-center gap-2 text-[15px] font-semibold mb-3">
+            <MessagesSquare className="size-4 text-[var(--fg-subtle)]" />
+            Conversations Instagram &amp; Gmail
+            {unreadCount > 0 && (
+              <Badge tone="accent">
+                {unreadCount} non lue{unreadCount > 1 ? "s" : ""}
+              </Badge>
+            )}
+          </h2>
+          <Card className="divide-y divide-[var(--border)] overflow-hidden">
+            {conversations.map((lead) => {
+              const last = lead.messages[0];
+              const unread = isUnread(lead);
+              const toAnswer = last?.direction === "in";
+              return (
+                <div
+                  key={lead.id}
+                  className="group relative flex items-center gap-3 px-4 py-3 hover:bg-[var(--surface-hover)] transition-colors"
+                >
+                  {/* Lien couvrant toute la ligne ; le @pseudo reste cliquable au-dessus. */}
+                  <Link
+                    href={`/demandes/contacts/${lead.id}`}
+                    className="absolute inset-0 z-0"
+                    aria-label={`Conversation avec ${leadDisplayName(lead)}`}
+                  />
+                  <span className="relative shrink-0">
+                    <LeadAvatar lead={lead} size="sm" />
+                    {unread && (
+                      <span
+                        className="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-[var(--accent)] ring-2 ring-[var(--surface)]"
+                        aria-label="Non lu"
+                      />
+                    )}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <p
+                        className={
+                          "text-[13px] truncate group-hover:text-[var(--accent)] transition-colors " +
+                          (unread ? "font-semibold" : "font-medium")
+                        }
+                      >
+                        {leadDisplayName(lead)}
+                      </p>
+                      {lead.channel === "instagram" ? (
+                        <Instagram className="size-3.5 shrink-0 text-[var(--fg-subtle)]" aria-label="Instagram" />
+                      ) : (
+                        <Mail className="size-3.5 shrink-0 text-[var(--fg-subtle)]" aria-label="Gmail" />
+                      )}
+                      {lead.username && lead.name && (
+                        <InstagramHandle
+                          username={lead.username}
+                          className="relative z-10 hidden sm:inline-flex text-[11px] text-[var(--fg-subtle)] [&_svg]:hidden"
+                        />
+                      )}
+                    </div>
+                    {last && (
+                      <p
+                        className={
+                          "text-[12px] truncate mt-0.5 " +
+                          (unread ? "text-[var(--fg)]" : "text-[var(--fg-muted)]")
+                        }
+                      >
+                        {last.direction === "out" && (
+                          <span className="text-[var(--fg-subtle)]">
+                            {last.auto ? "Réponse auto : " : "Toi : "}
+                          </span>
+                        )}
+                        {truncate(last.body.replace(/\s+/g, " "), 120)}
+                      </p>
+                    )}
+                  </div>
+                  <div className="shrink-0 flex flex-col items-end gap-1">
+                    <span className="text-[11px] text-[var(--fg-subtle)]">
+                      {formatRelative(lead.lastMessageAt ?? lead.createdAt)}
+                    </span>
+                    {toAnswer ? (
+                      <Badge tone="warning">À répondre</Badge>
+                    ) : (
+                      <LeadProgress lead={lead} hasRequest={lead._count.requests > 0} />
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </Card>
+        </section>
+      )}
 
       {requests.length === 0 ? (
         <EmptyState
@@ -210,7 +303,7 @@ export default async function RequestsPage({
 
                   <div className="flex flex-wrap gap-1.5 mt-auto pt-2.5 border-t border-[var(--border)]">
                     {request.bodyZone && (
-                      <Badge>{labelOf(BODY_ZONES, request.bodyZone)}</Badge>
+                      <Badge>{labelOf(ALL_BODY_ZONES, request.bodyZone)}</Badge>
                     )}
                     {request.sizeCm && <Badge>{request.sizeCm}</Badge>}
                     <Badge>{labelOf(COLOR_MODE, request.colorMode)}</Badge>
@@ -221,61 +314,6 @@ export default async function RequestsPage({
             );
           })}
         </div>
-      )}
-
-      {waitingLeads.length > 0 && (
-        <section className="mt-10">
-          <h2 className="flex items-center gap-2 text-[15px] font-semibold mb-1">
-            <MessagesSquare className="size-4 text-[var(--fg-subtle)]" />
-            Contacts en attente du formulaire
-          </h2>
-          <p className="text-[13px] text-[var(--fg-muted)] mb-4">
-            Ces personnes t&apos;ont écrit sur Instagram ou Gmail et ont reçu leur lien perso,
-            mais n&apos;ont pas encore envoyé leur demande.
-          </p>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {waitingLeads.map((lead) => (
-              <div key={lead.id} className="group relative">
-                <Card interactive className="p-4 h-full flex flex-col gap-2.5">
-                  <Link
-                    href={`/demandes/contacts/${lead.id}`}
-                    className="absolute inset-0 z-0 rounded-[inherit]"
-                    aria-label={`Contact ${leadDisplayName(lead)}`}
-                  />
-                  <div className="flex items-start gap-3">
-                    <LeadAvatar lead={lead} size="sm" />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[13px] font-semibold truncate group-hover:text-[var(--accent)] transition-colors">
-                        {leadDisplayName(lead)}
-                      </p>
-                      <p className="text-[11px] text-[var(--fg-subtle)] mt-0.5 flex flex-wrap items-center gap-x-2">
-                        {formatRelative(lead.lastMessageAt ?? lead.createdAt)}
-                        {lead.username && (
-                          <InstagramHandle
-                            username={lead.username}
-                            className="relative z-10 text-[var(--fg-muted)]"
-                          />
-                        )}
-                        {lead.channel === "email" && lead.email && (
-                          <span className="truncate">{lead.email}</span>
-                        )}
-                      </p>
-                    </div>
-                    <ChannelBadge channel={lead.channel} />
-                  </div>
-                  {lead.messages[0] && (
-                    <p className="text-[12px] text-[var(--fg-muted)] leading-relaxed line-clamp-2">
-                      {truncate(lead.messages[0].body.replace(/\s+/g, " "), 140)}
-                    </p>
-                  )}
-                  <div className="mt-auto pt-2 border-t border-[var(--border)]">
-                    <LeadProgress lead={lead} hasRequest={false} />
-                  </div>
-                </Card>
-              </div>
-            ))}
-          </div>
-        </section>
       )}
     </>
   );

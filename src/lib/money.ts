@@ -82,7 +82,7 @@ export function cashRoundingDelta(cents: number): number {
 /**
  * Calcule les totaux d'un document.
  *
- * Important : si le salon n'est pas assujetti à la TVA (CA < CHF 100'000),
+ * Important : si l'activité n'est pas assujettie à la TVA (CA < CHF 100'000),
  * `vatRate` vaut 0 et AUCUNE TVA n'est calculée ni affichée. Facturer une TVA
  * sans être inscrit au registre de l'AFC est une faute.
  */

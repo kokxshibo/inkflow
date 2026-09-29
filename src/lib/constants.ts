@@ -24,7 +24,7 @@ export const CLIENT_SOURCE: Option[] = [
   { value: "website", label: "Formulaire du site" },
   { value: "word_of_mouth", label: "Bouche-à-oreille" },
   { value: "google", label: "Google" },
-  { value: "walk_in", label: "Passage au salon" },
+  { value: "walk_in", label: "Sans rendez-vous" },
   { value: "referral", label: "Parrainage" },
   { value: "convention", label: "Convention" },
   { value: "other", label: "Autre" },
@@ -99,15 +99,31 @@ export const COLOR_MODE: Option[] = [
   { value: "dotwork", label: "Dotwork" },
 ];
 
+/** Emplacements proposés, sans distinguer gauche et droite (précisé dans la description). */
 export const BODY_ZONES: Option[] = [
+  { value: "avant_bras", label: "Avant-bras" },
+  { value: "bras", label: "Bras" },
+  { value: "epaule", label: "Épaule" },
+  { value: "main", label: "Main / doigts" },
+  { value: "pectoral", label: "Poitrine" },
+  { value: "ventre", label: "Ventre" },
+  { value: "cotes", label: "Côtes" },
+  { value: "dos", label: "Dos" },
+  { value: "cuisse", label: "Cuisse" },
+  { value: "mollet", label: "Mollet" },
+  { value: "cheville", label: "Cheville / pied" },
+  { value: "cou", label: "Cou / nuque" },
+  { value: "autre", label: "Autre" },
+];
+
+/** Anciennes valeurs (gauche / droite, parties du dos), encore présentes dans des fiches. */
+const LEGACY_BODY_ZONES: Option[] = [
   { value: "avant_bras_g", label: "Avant-bras gauche" },
   { value: "avant_bras_d", label: "Avant-bras droit" },
   { value: "bras_g", label: "Bras gauche" },
   { value: "bras_d", label: "Bras droit" },
   { value: "epaule_g", label: "Épaule gauche" },
   { value: "epaule_d", label: "Épaule droite" },
-  { value: "pectoral", label: "Pectoraux" },
-  { value: "ventre", label: "Ventre" },
   { value: "cotes_g", label: "Côtes gauches" },
   { value: "cotes_d", label: "Côtes droites" },
   { value: "dos_haut", label: "Haut du dos" },
@@ -121,9 +137,18 @@ export const BODY_ZONES: Option[] = [
   { value: "cheville_d", label: "Cheville droite" },
   { value: "main_g", label: "Main gauche" },
   { value: "main_d", label: "Main droite" },
-  { value: "cou", label: "Cou" },
-  { value: "autre", label: "Autre" },
 ];
+
+/** Pour l'affichage : comprend aussi les anciennes valeurs. */
+export const ALL_BODY_ZONES: Option[] = [...BODY_ZONES, ...LEGACY_BODY_ZONES];
+
+/** Ramène une ancienne valeur à l'emplacement simplifié correspondant (« bras_g » → « bras »). */
+export function normalizeBodyZone(value: string | null | undefined): string {
+  if (!value) return "";
+  if (BODY_ZONES.some((zone) => zone.value === value)) return value;
+  const base = value.replace(/_(g|d|haut|bas|complet)$/, "");
+  return BODY_ZONES.some((zone) => zone.value === base) ? base : "autre";
+}
 
 export const IMAGE_KIND: Option[] = [
   { value: "reference", label: "Référence client" },
@@ -233,8 +258,8 @@ export function toneOf(options: Option[], value: string | null | undefined): Ton
 export const TEMPLATE_VARIABLES = [
   { key: "prenom", label: "Prénom du client" },
   { key: "nom", label: "Nom du client" },
-  { key: "salon", label: "Nom du salon" },
-  { key: "tatoueur", label: "Nom du tatoueur" },
+  { key: "artiste", label: "Ton nom d'artiste" },
+  { key: "tatoueur", label: "Ton nom" },
   { key: "date_rdv", label: "Date du rendez-vous" },
   { key: "heure_rdv", label: "Heure du rendez-vous" },
   { key: "projet", label: "Titre du projet" },

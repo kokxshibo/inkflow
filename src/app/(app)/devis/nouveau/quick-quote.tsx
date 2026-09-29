@@ -367,7 +367,7 @@ export function QuickQuote({
                   {price === computed ? (
                     <span className="text-[var(--fg-subtle)]">
                       {minimumApplied
-                        ? `Prix minimum du salon (${sessions} × ${formatHours(hours)} × ${formatCHF(settings.hourlyRate)} = ${formatCHF(roundTo5Cents(Math.round(settings.hourlyRate * sessions * hours)))})`
+                        ? `Ton prix minimum (${sessions} × ${formatHours(hours)} × ${formatCHF(settings.hourlyRate)} = ${formatCHF(roundTo5Cents(Math.round(settings.hourlyRate * sessions * hours)))})`
                         : `${sessions} séance${sessions > 1 ? "s" : ""} × ${formatHours(hours)} × ${formatCHF(settings.hourlyRate)} de l'heure`}
                     </span>
                   ) : (

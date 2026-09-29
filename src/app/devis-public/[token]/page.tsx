@@ -87,7 +87,8 @@ export default async function PublicQuotePage({
           <div className="p-4 rounded-[var(--radius-md)] bg-[var(--warning-soft)] border border-[var(--warning)]/30">
             <p className="text-[13px] text-[var(--fg-muted)]">
               Ce devis a expiré. Contacte
-              {settings.email ? ` ${settings.studioName} à ${settings.email}` : " le salon"}{" "}
+              {` ${settings.studioName}`}
+              {settings.email ? ` à ${settings.email}` : ""}{" "}
               pour en obtenir un nouveau.
             </p>
           </div>

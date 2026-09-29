@@ -47,7 +47,7 @@ const schema = z
 /**
  * Crée un devis d'une seule ligne à partir de la proposition automatique.
  * Le prix saisi est le prix final payé par le client ; la TVA en est extraite
- * si le salon y est assujetti.
+ * si l'activité y est assujettie.
  */
 export async function createQuickQuote(
   _prev: QuickQuoteState,

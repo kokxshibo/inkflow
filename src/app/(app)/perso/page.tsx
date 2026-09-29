@@ -70,7 +70,7 @@ export default async function PersonalPage() {
     <>
       <PageHeader
         title="Gestion personnelle"
-        description="AVS, assurance maladie et impôts — tout au même endroit que le salon."
+        description="AVS, assurance maladie et impôts — au même endroit que ton activité."
         actions={
           <Button asChild variant="secondary" size="sm">
             <Link href="/perso/reglages">Réglages</Link>

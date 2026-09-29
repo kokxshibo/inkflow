@@ -42,14 +42,14 @@ export interface ChannelView {
   subject: string | null;
   message: string;
   lastError: string | null;
-  /** Libellés calculés sur le serveur (fuseau du salon, pas d'écart à l'hydratation). */
+  /** Libellés calculés sur le serveur (fuseau suisse, pas d'écart à l'hydratation). */
   lastSyncLabel: string | null;
   tokenExpiryLabel: string | null;
   leads: number;
 }
 
 interface Preview {
-  salon: string;
+  artiste: string;
   tatoueur: string;
   signature: string;
   lien: string;
@@ -214,7 +214,7 @@ function GmailCard({ gmail, preview }: { gmail: ChannelView; preview: Preview })
                   type="email"
                   required
                   autoComplete="off"
-                  placeholder="monsalon@gmail.com"
+                  placeholder="tonnom@gmail.com"
                 />
               </Field>
               <Field label="Mot de passe d'application" htmlFor="gmail-password" required>
@@ -459,7 +459,9 @@ function AutoReplyForm({
     .replace(/\{\{\s*(\w+)\s*\}\}/g, (_match, key: string) => {
       const values: Record<string, string> = {
         lien: preview.lien,
-        salon: preview.salon,
+        artiste: preview.artiste,
+        // Ancien nom de {{artiste}}.
+        salon: preview.artiste,
         tatoueur: preview.tatoueur,
         signature: preview.signature,
       };
@@ -509,7 +511,7 @@ function AutoReplyForm({
         <Field
           label="Message"
           htmlFor={`${channel}-message`}
-          hint="Variables : {{prenom}} {{lien}} {{salon}} {{tatoueur}} {{signature}}. {{lien}} est obligatoire."
+          hint="Variables : {{prenom}} {{lien}} {{artiste}} {{tatoueur}} {{signature}}. {{lien}} est obligatoire."
         >
           <Textarea
             id={`${channel}-message`}

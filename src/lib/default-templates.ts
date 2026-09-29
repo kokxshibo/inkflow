@@ -10,7 +10,7 @@ export const DEFAULT_EMAIL_TEMPLATES = [
     key: "quote_send",
     name: "Envoi de devis",
     category: "quote",
-    subject: "Ton devis {{numero}} — {{salon}}",
+    subject: "Ton devis {{numero}} — {{artiste}}",
     body: `Salut {{prenom}},
 
 Merci pour ta confiance ! Voici le devis pour ton projet, que je joins en PDF à ce message.
@@ -47,7 +47,7 @@ Aucune pression — dis-moi simplement si le projet te convient, si tu veux ajus
     key: "invoice_send",
     name: "Envoi de facture",
     category: "invoice",
-    subject: "Facture {{numero}} — {{salon}}",
+    subject: "Facture {{numero}} — {{artiste}}",
     body: `Salut {{prenom}},
 
 Merci pour la séance ! Tu trouveras la facture {{numero}} en pièce jointe.
@@ -156,7 +156,7 @@ Envoie-moi une photo dans un mois, que je voie comment ça a cicatrisé. Si une 
 
 Deux petites choses si tu as un moment :
 - envoie-moi une photo de la zone cicatrisée, ça m'aide vraiment à suivre mon travail
-- si l'expérience t'a plu, un avis Google ferait une vraie différence pour le salon
+- si l'expérience t'a plu, un avis Google ferait une vraie différence pour moi
 
 Et si quelque chose ne va pas, dis-le-moi : la retouche est offerte.
 
@@ -168,7 +168,7 @@ Merci,
     key: "request_ack",
     name: "Accusé de réception d'une demande",
     category: "general",
-    subject: "J'ai bien reçu ta demande — {{salon}}",
+    subject: "J'ai bien reçu ta demande — {{artiste}}",
     body: `Salut {{prenom}},
 
 Merci pour ta demande, elle est bien arrivée.

@@ -73,7 +73,7 @@ export async function saveQuote(
   }
 
   const settings = await getSettings();
-  // Si le salon n'est pas assujetti, aucune TVA n'est appliquée ni affichée.
+  // Sans assujettissement, aucune TVA n'est appliquée ni affichée.
   const vatRate = settings.vatEnabled ? settings.vatRate : 0;
 
   const input = parsed.data;

@@ -19,6 +19,8 @@ import {
   leadDisplayName,
 } from "../../lead-ui";
 import { LeadActions } from "./lead-actions";
+import { LeadComposer, LiveRefresh } from "../../lead-composer";
+import { composerPropsFor, markReadIfNeeded } from "../../lead-server";
 
 export const metadata: Metadata = { title: "Contact" };
 export const dynamic = "force-dynamic";
@@ -34,9 +36,12 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
     },
   });
   if (!lead) notFound();
+  await markReadIfNeeded(lead);
+  const composer = await composerPropsFor(lead);
 
   return (
     <>
+      <LiveRefresh />
       <PageHeader
         breadcrumb={
           <Link
@@ -75,19 +80,23 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
       />
 
       <div className="grid gap-6 lg:grid-cols-[1fr_300px] items-start">
-        <Card className="order-2 lg:order-1">
+        {/* La conversation d'abord, y compris sur téléphone. */}
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <MessagesSquare className="size-4 text-[var(--fg-subtle)]" />
               Conversation {lead.channel === "instagram" ? "Instagram" : "Gmail"}
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-5">
             <LeadConversation messages={lead.messages} channel={lead.channel} />
+            <div className="pt-4 border-t border-[var(--border)]">
+              <LeadComposer {...composer} />
+            </div>
           </CardContent>
         </Card>
 
-        <div className="space-y-5 order-1 lg:order-2">
+        <div className="space-y-5">
           <Card>
             <CardHeader>
               <CardTitle>Contact</CardTitle>

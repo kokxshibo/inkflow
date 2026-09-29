@@ -23,7 +23,7 @@ export function LoginForm({ suite }: { suite?: string }) {
           autoComplete="username"
           required
           autoFocus
-          placeholder="tatoueur@monsalon.ch"
+          placeholder="toi@exemple.ch"
           icon={<Mail />}
         />
       </Field>

@@ -27,7 +27,7 @@ export default async function SettingsPage() {
     <>
       <PageHeader
         title="Réglages"
-        description="Identité du salon, TVA, coordonnées bancaires et facturation."
+        description="Ton profil, TVA, coordonnées bancaires et facturation."
         actions={
           <Button asChild variant="secondary" size="sm">
             <Link href="/reglages/connexions">

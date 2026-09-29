@@ -19,7 +19,7 @@ import { formatDate, formatDateTime, fullName, initials, isMinor } from "@/lib/u
 import {
   APPOINTMENT_STATUS,
   APPOINTMENT_TYPE,
-  BODY_ZONES,
+  ALL_BODY_ZONES,
   COLOR_MODE,
   INVOICE_STATUS,
   PROJECT_KIND,
@@ -299,7 +299,7 @@ export default async function ProjectDetailPage({
             <CardContent>
               <dl>
                 <DataRow label={<span className="flex items-center gap-1.5"><MapPin className="size-3.5" />Emplacement</span>}>
-                  {labelOf(BODY_ZONES, project.bodyZone)}
+                  {labelOf(ALL_BODY_ZONES, project.bodyZone)}
                 </DataRow>
                 <DataRow label={<span className="flex items-center gap-1.5"><Ruler className="size-3.5" />Taille</span>}>
                   {project.widthCm && project.heightCm

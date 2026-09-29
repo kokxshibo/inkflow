@@ -1,7 +1,7 @@
 /**
  * Jeu de données initial.
  *
- * Crée le compte d'accès, les réglages du salon, les modèles d'e-mails,
+ * Crée le compte d'accès, les réglages, les modèles d'e-mails,
  * et quelques clients/projets/documents de démonstration pour que
  * l'application ne soit pas vide au premier lancement.
  *
@@ -13,7 +13,7 @@ import { DEFAULT_EMAIL_TEMPLATES } from "../src/lib/default-templates.ts";
 
 const db = new PrismaClient();
 
-const EMAIL = "tatoueur@monsalon.ch";
+const EMAIL = "tatoueur@exemple.ch";
 const PASSWORD = "InkFlow2026!";
 
 function daysFromNow(days: number, hour = 10) {
@@ -58,16 +58,16 @@ async function main() {
     await db.settings.create({
       data: {
         id: 1,
-        studioName: "Encre Noire Tattoo",
+        studioName: "Marc Ink",
         ownerName: "Marc Ducrey",
         addressLine: "Rue du Rhône 12",
         postalCode: "1204",
         city: "Genève",
         canton: "GE",
         country: "CH",
-        email: "contact@encrenoire.ch",
+        email: "contact@marcink.ch",
         phone: "+41 22 123 45 67",
-        instagram: "encrenoire.tattoo",
+        instagram: "marc.ink",
         ide: "CHE-123.456.789",
         legalForm: "individual",
         // Sous le seuil de CHF 100'000 : non assujetti à la TVA.
@@ -82,7 +82,7 @@ async function main() {
         paymentTermDays: 30,
         quoteValidityDays: 30,
         emailSignature:
-          "Marc\nEncre Noire Tattoo\nRue du Rhône 12, 1204 Genève\n+41 22 123 45 67",
+          "Marc Ducrey\nMarc Ink\nRue du Rhône 12, 1204 Genève\n+41 79 123 45 67",
       },
     });
     console.log("  Réglages créés");

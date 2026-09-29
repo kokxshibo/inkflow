@@ -452,13 +452,16 @@ model Lead {
   email      String?
   avatarUrl  String? // photo de profil copiée sur le serveur (les liens Instagram expirent)
 
-  autoRepliedAt DateTime?
-  clicks        Int       @default(0)
-  firstClickAt  DateTime?
-  lastClickAt   DateTime?
-  lastMessageAt DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  autoRepliedAt  DateTime?
+  clicks         Int       @default(0)
+  firstClickAt   DateTime?
+  lastClickAt    DateTime?
+  lastMessageAt  DateTime?
+  // Suivi : non lu tant qu'un message reçu est plus récent que la dernière lecture.
+  lastIncomingAt DateTime?
+  lastReadAt     DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   messages LeadMessage[]
   requests ProjectRequest[]

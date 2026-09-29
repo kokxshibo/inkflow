@@ -13,7 +13,7 @@ import {
 import { db } from "@/lib/db";
 import { formatDate, formatRelative, initials, isMinor, age, parseJsonArray } from "@/lib/utils";
 import {
-  BODY_ZONES,
+  ALL_BODY_ZONES,
   COLOR_MODE,
   PROJECT_STYLE,
   REQUEST_STATUS,
@@ -23,6 +23,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/badge";
 import { Avatar, DataRow, PageHeader } from "@/components/ui/misc";
 import { RequestActions } from "./request-actions";
+import { LeadComposer, LiveRefresh } from "../lead-composer";
+import { composerPropsFor, markReadIfNeeded } from "../lead-server";
 import {
   ChannelBadge,
   InstagramHandle,
@@ -52,6 +54,8 @@ export default async function RequestDetailPage({
 
   const references = parseJsonArray(request.referenceUrls);
   const lead = request.lead;
+  if (lead) await markReadIfNeeded(lead);
+  const composer = lead ? await composerPropsFor(lead) : null;
   // Le pseudo vu dans la conversation Instagram prime sur celui saisi dans le formulaire.
   const instagram = lead?.username ?? request.instagram?.replace(/^@/, "") ?? null;
   const minor = !request.isAdult || isMinor(request.birthDate);
@@ -59,6 +63,7 @@ export default async function RequestDetailPage({
 
   return (
     <>
+      {lead && <LiveRefresh />}
       <PageHeader
         breadcrumb={
           <Link
@@ -186,8 +191,13 @@ export default async function RequestDetailPage({
                   Fiche du contact
                 </Link>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-5">
                 <LeadConversation messages={lead.messages} channel={lead.channel} />
+                {composer && (
+                  <div className="pt-4 border-t border-[var(--border)]">
+                    <LeadComposer {...composer} />
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
@@ -260,7 +270,7 @@ export default async function RequestDetailPage({
             <CardContent>
               <dl>
                 <DataRow label="Emplacement">
-                  {labelOf(BODY_ZONES, request.bodyZone)}
+                  {labelOf(ALL_BODY_ZONES, request.bodyZone)}
                 </DataRow>
                 <DataRow label="Taille">{request.sizeCm ?? "—"}</DataRow>
                 <DataRow label="Rendu">{labelOf(COLOR_MODE, request.colorMode)}</DataRow>

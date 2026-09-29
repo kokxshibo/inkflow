@@ -15,7 +15,7 @@ const optionalString = z
   .default(null);
 
 const settingsSchema = z.object({
-  studioName: z.string().trim().min(1, "Le nom du salon est requis"),
+  studioName: z.string().trim().min(1, "Ton nom d'artiste est requis"),
   ownerName: z.string().trim().default(""),
   tagline: optionalString,
   addressLine: z.string().trim().default(""),

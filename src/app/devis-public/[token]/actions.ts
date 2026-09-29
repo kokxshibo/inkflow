@@ -39,7 +39,7 @@ export async function acceptQuote(
   if (!quote) return { error: "Devis introuvable." };
   if (quote.status === "accepted") return { success: true };
   if (quote.validUntil < new Date()) {
-    return { error: "Ce devis a expiré. Contacte le salon pour en obtenir un nouveau." };
+    return { error: "Ce devis a expiré. Contacte ton tatoueur pour en obtenir un nouveau." };
   }
 
   const headerList = await headers();

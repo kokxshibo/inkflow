@@ -1,6 +1,7 @@
 import { requireSession } from "@/lib/auth";
 import { db, getSettings } from "@/lib/db";
 import { AppShell } from "@/components/app-shell";
+import { countUnreadLeads } from "@/lib/leads";
 import { endOfDay, startOfDay } from "@/lib/utils";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -12,13 +13,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   inTenDays.setDate(inTenDays.getDate() + 10);
 
   const [
-    requests,
+    newRequests,
+    unreadConversations,
     unreadMessages,
     todayAppointments,
     expensesToPay,
     obligationsDue,
   ] = await Promise.all([
     db.projectRequest.count({ where: { status: "new" } }),
+    countUnreadLeads(),
     db.message.count({ where: { direction: "in", readAt: null } }),
     db.appointment.count({
       where: {
@@ -41,7 +44,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       user={{ name: session.name, email: session.email }}
       studioName={settings.studioName}
       counts={{
-        requests,
+        // Badge « Demandes » : nouvelles demandes + conversations Instagram / Gmail non lues.
+        requests: newRequests + unreadConversations,
         unreadMessages,
         todayAppointments,
         expensesToPay,

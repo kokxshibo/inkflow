@@ -1140,7 +1140,7 @@ function OriginStep({ draft, errors, update }: StepProps) {
     <>
       <div className="space-y-2.5">
         <p className="text-[13px] font-medium text-[var(--fg-muted)]">
-          Comment a-t-il connu le salon ?
+          Comment t&apos;a-t-il connu ?
           <span className="text-[var(--danger)] ml-0.5">*</span>
         </p>
         <ChoiceGroup
@@ -1359,7 +1359,7 @@ function ConsentStep({ draft, errors, update }: StepProps) {
           Peut-on publier des photos de son tatouage ?
         </p>
         <p className="text-[12px] text-[var(--fg-subtle)] -mt-1.5">
-          Sur Instagram, le site et le book du salon.
+          Sur ton Instagram, ton site et ton book.
         </p>
         <YesNo
           ariaLabel="Droit à l'image"
@@ -1374,7 +1374,7 @@ function ConsentStep({ draft, errors, update }: StepProps) {
 
       <div className="space-y-2.5 pt-2">
         <p className="text-[15px] font-medium text-[var(--fg)]">
-          Accepte-t-il de recevoir des nouvelles du salon ?
+          Accepte-t-il de recevoir de tes nouvelles ?
         </p>
         <p className="text-[12px] text-[var(--fg-subtle)] -mt-1.5">
           Offres, créneaux libérés, message d&apos;anniversaire. Les e-mails de
@@ -1594,7 +1594,7 @@ function ReviewStep({
         <Row label="Photos publiables">
           <YesNoBadge value={draft.imageConsent} />
         </Row>
-        <Row label="Nouvelles du salon">
+        <Row label="Reçoit tes nouvelles">
           <YesNoBadge value={draft.marketingConsent} />
         </Row>
       </ReviewCard>

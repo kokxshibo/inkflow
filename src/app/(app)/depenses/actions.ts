@@ -83,7 +83,7 @@ export async function saveExpense(
     };
   }
 
-  // L'impôt préalable n'est récupérable que si le salon est assujetti à la TVA.
+  // L'impôt préalable n'est récupérable que si l'activité est assujettie à la TVA.
   const vatDeductible = settings.vatEnabled && input.vatDeductible;
   const { net, vat } = splitGrossAmount(amountGross, input.vatRate);
 

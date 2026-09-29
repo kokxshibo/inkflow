@@ -8,7 +8,7 @@ import {
   COLOR_MODE,
   PROJECT_STATUS,
   PROJECT_STYLE,
-  BODY_ZONES,
+  ALL_BODY_ZONES,
   labelOf,
 } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
@@ -144,7 +144,7 @@ export default async function ProjectsPage({
                         {project.style ? labelOf(PROJECT_STYLE, project.style) : "Style libre"}
                         {" · "}
                         {labelOf(COLOR_MODE, project.colorMode)}
-                        {project.bodyZone && ` · ${labelOf(BODY_ZONES, project.bodyZone)}`}
+                        {project.bodyZone && ` · ${labelOf(ALL_BODY_ZONES, project.bodyZone)}`}
                       </p>
                     </div>
 

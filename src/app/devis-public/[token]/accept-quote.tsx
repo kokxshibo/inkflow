@@ -34,7 +34,7 @@ export function AcceptQuote({
         <div>
           <p className="text-sm font-medium">Devis accepté — merci !</p>
           <p className="text-[13px] text-[var(--fg-muted)] mt-1 leading-relaxed">
-            Le salon a été prévenu et revient vers toi rapidement
+            Ton tatoueur a été prévenu et revient vers toi rapidement
             {deposit ? ` pour l'acompte de ${deposit} et la prise de rendez-vous` : ""}.
           </p>
         </div>

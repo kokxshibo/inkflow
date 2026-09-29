@@ -2,10 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { db, logActivity } from "@/lib/db";
+import { z } from "zod";
+import { db, getSettings, logActivity } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
-import { sendLinkByEmail } from "@/lib/gmail";
-import { refreshLeadProfile, sendLinkByInstagram } from "@/lib/instagram";
+import { sendEmailToLead, sendLinkByEmail } from "@/lib/gmail";
+import { refreshLeadProfile, sendInstagramToLead, sendLinkByInstagram } from "@/lib/instagram";
+import { markLeadRead } from "@/lib/leads";
+import { buildSignature } from "@/lib/mail";
 import { removeFile } from "@/lib/storage";
 
 export async function setRequestStatus(id: string, status: string) {
@@ -139,6 +142,51 @@ export interface LeadActionResult {
 function revalidateLead(id: string) {
   revalidatePath("/demandes");
   revalidatePath(`/demandes/contacts/${id}`);
+  // Les demandes rattachées affichent aussi la conversation.
+  revalidatePath("/demandes/[id]", "page");
+  revalidatePath("/", "layout");
+}
+
+const replySchema = z
+  .string()
+  .trim()
+  .min(1, "Le message est vide.")
+  .max(4000, "Message trop long (4000 caractères maximum).");
+
+/**
+ * Réponse écrite depuis l'app : elle part sur le canal où la personne a
+ * écrit (message privé Instagram ou e-mail dans le même fil Gmail).
+ */
+export async function replyToLead(id: string, text: string): Promise<LeadActionResult> {
+  await requireSession();
+  const parsed = replySchema.safeParse(text);
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Message invalide." };
+
+  const lead = await db.lead.findUnique({ where: { id } });
+  if (!lead) return { error: "Contact introuvable." };
+
+  try {
+    if (lead.channel === "instagram") {
+      if (parsed.data.length > 1000) {
+        return { error: "Instagram limite un message à 1000 caractères." };
+      }
+      await sendInstagramToLead(id, parsed.data, "app");
+    } else {
+      // Comme dans Gmail : la signature est ajoutée sous le message.
+      const signature = buildSignature(await getSettings()).trim();
+      const body =
+        signature && !parsed.data.endsWith(signature)
+          ? `${parsed.data}\n\n${signature}`
+          : parsed.data;
+      await sendEmailToLead(id, { text: body }, "app");
+    }
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Envoi impossible." };
+  }
+
+  await markLeadRead(id);
+  revalidateLead(id);
+  return {};
 }
 
 /** Envoie (ou renvoie) le lien de demande perso au contact, sur son canal. */

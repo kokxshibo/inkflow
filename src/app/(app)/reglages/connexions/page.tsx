@@ -75,7 +75,7 @@ export default async function ConnexionsPage({
           configured: /^https:\/\//.test(baseUrl),
         }}
         preview={{
-          salon: settings.studioName,
+          artiste: settings.studioName,
           tatoueur: settings.ownerName,
           signature: buildSignature(settings),
           lien: `${baseUrl || "https://ton-adresse"}/d/exemple123`,

@@ -88,7 +88,7 @@ export async function generateDocumentPdf(
         .fontSize(8)
         .fillColor("#b91c1c")
         .text(
-          "QR-facture non générée : vérifie l'IBAN, l'adresse du salon et celle du client dans les réglages.",
+          "QR-facture non générée : vérifie l'IBAN, ton adresse de facturation et celle du client.",
           MARGIN,
           doc.page.height - MARGIN - 20,
           { width: CONTENT_WIDTH },

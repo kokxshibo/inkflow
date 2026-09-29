@@ -70,6 +70,13 @@ async function graph<T>(url: string, init?: RequestInit): Promise<T> {
     error_message?: string;
   } & T;
   if (!response.ok || data.error) {
+    // 190 : jeton expiré, révoqué ou illisible (mot de passe Instagram changé…).
+    if (data.error?.code === 190) {
+      throw new GraphError(
+        "La connexion Instagram n'est plus valide : reconnecte Instagram dans Réglages → Connexions.",
+        190,
+      );
+    }
     const message =
       data.error?.error_user_msg ?? data.error?.message ?? data.error_message ?? `HTTP ${response.status}`;
     throw new GraphError(`Instagram : ${message}`, data.error?.code);
@@ -247,7 +254,7 @@ async function handleEvent(event: MessagingEvent, integration: Integration, toke
   const ownId = integration.accountId!;
   const sentAt = event.timestamp ? new Date(event.timestamp) : new Date();
 
-  // Message envoyé par le salon (depuis l'app Instagram ou par l'API) :
+  // Message envoyé par toi (depuis l'app Instagram ou par l'API) :
   // il rejoint la conversation du contact s'il est connu.
   if (message.is_echo || event.sender?.id === ownId) {
     const recipient = event.recipient?.id;
@@ -277,9 +284,9 @@ async function handleEvent(event: MessagingEvent, integration: Integration, toke
 
   if (!matchesKeywords(message.text ?? "", parseKeywords(integration.keywords))) return;
 
-  // Nouvelle conversation seulement : le salon ne lui a encore jamais écrit.
+  // Nouvelle conversation seulement : tu ne lui as encore jamais écrit.
   const history = await conversationHistory(token, senderId, ownId);
-  if (history.salonHasWritten || history.startedBefore < sentAt.getTime() - NEW_CONVERSATION_WINDOW_MS) {
+  if (history.artistHasWritten || history.startedBefore < sentAt.getTime() - NEW_CONVERSATION_WINDOW_MS) {
     return;
   }
 
@@ -362,7 +369,7 @@ export async function fetchProfile(token: string, igsid: string): Promise<Profil
  */
 async function conversationHistory(token: string, igsid: string, ownId: string) {
   const result = {
-    salonHasWritten: false,
+    artistHasWritten: false,
     startedBefore: Date.now(),
     messages: [] as { direction: "in"; body: string; externalId: string; sentAt: Date }[],
   };
@@ -385,7 +392,7 @@ async function conversationHistory(token: string, igsid: string, ownId: string) 
       const time = new Date(item.created_time).getTime();
       if (Number.isFinite(time)) result.startedBefore = Math.min(result.startedBefore, time);
       if (item.from?.id === ownId) {
-        result.salonHasWritten = true;
+        result.artistHasWritten = true;
       } else if (item.message?.trim()) {
         result.messages.push({
           direction: "in",
@@ -409,7 +416,7 @@ export async function sendInstagramMessage(token: string, recipientId: string, t
       body: JSON.stringify({ recipient: { id: recipientId }, message: { text: text.slice(0, 1000) } }),
     });
   } catch (error) {
-    // Hors de la fenêtre de 24 h, Instagram refuse tout message du salon.
+    // Hors de la fenêtre de 24 h, Instagram refuse toute réponse.
     if (error instanceof GraphError && (error.code === 10 || /24/.test(error.message))) {
       throw new Error(
         "Instagram n'autorise une réponse que dans les 24 h qui suivent le dernier message de la personne.",
@@ -419,23 +426,30 @@ export async function sendInstagramMessage(token: string, recipientId: string, t
   }
 }
 
+/** Envoie un message à un contact Instagram et l'ajoute à la conversation. */
+export async function sendInstagramToLead(leadId: string, text: string, kind: "auto" | "app") {
+  const integration = await getIntegration("instagram");
+  const token = decryptSecret(integration.secret);
+  if (!token) throw new Error("Instagram n'est pas connecté (Réglages → Connexions).");
+  const lead = await db.lead.findUniqueOrThrow({ where: { id: leadId } });
+  if (lead.channel !== "instagram") throw new Error("Ce contact n'a pas écrit sur Instagram.");
+
+  const sent = await sendInstagramMessage(token, lead.externalId, text);
+  await recordMessage(lead.id, {
+    direction: "out",
+    body: text,
+    externalId: sent.message_id,
+    auto: kind === "auto",
+  });
+}
+
 /** Envoi manuel du lien à un contact Instagram (depuis la fiche du contact). */
 export async function sendLinkByInstagram(leadId: string) {
   const integration = await getIntegration("instagram");
-  const token = decryptSecret(integration.secret);
-  if (!token) throw new Error("Instagram n'est pas connecté.");
   const lead = await db.lead.findUniqueOrThrow({ where: { id: leadId } });
-  if (lead.channel !== "instagram") throw new Error("Ce contact n'est pas un contact Instagram.");
-
   const reply = await buildAutoReply(integration, lead);
-  const sent = await sendInstagramMessage(token, lead.externalId, reply.text);
-  await recordMessage(lead.id, {
-    direction: "out",
-    body: reply.text,
-    externalId: sent.message_id,
-    auto: true,
-  });
-  await db.lead.update({ where: { id: lead.id }, data: { autoRepliedAt: new Date() } });
+  await sendInstagramToLead(leadId, reply.text, "auto");
+  await db.lead.update({ where: { id: leadId }, data: { autoRepliedAt: new Date() } });
 }
 
 /** Met à jour pseudo, nom et photo de profil d'un contact Instagram. */

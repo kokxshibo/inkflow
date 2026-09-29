@@ -8,7 +8,7 @@ import { DEFAULT_EMAIL_TEMPLATES } from "@/lib/default-templates";
 
 const schema = z
   .object({
-    studioName: z.string().trim().min(1, "Le nom du salon est requis"),
+    studioName: z.string().trim().min(1, "Ton nom d'artiste est requis"),
     ownerName: z.string().trim().min(1, "Ton nom est requis"),
     email: z.string().trim().email("Adresse e-mail invalide"),
     password: z.string().min(10, "10 caractères minimum"),

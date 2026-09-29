@@ -3,7 +3,7 @@ import type { Prisma, Settings } from "@prisma/client";
 import { db } from "./db";
 import { formatCHF, roundTo5Cents } from "./money";
 import { formatDate, formatDuration, minutesBetween } from "./utils";
-import { BODY_ZONES, COLOR_MODE, PROJECT_STYLE, labelOf } from "./constants";
+import { ALL_BODY_ZONES, COLOR_MODE, PROJECT_STYLE, labelOf } from "./constants";
 
 /**
  * Facturation automatique.
@@ -170,7 +170,7 @@ function priceSession(
   if (hourly < settings.minimumPrice) {
     return {
       amount: settings.minimumPrice,
-      explanation: `Prix minimum du salon (${formatDuration(minutes)} × ${formatCHF(settings.hourlyRate)} de l'heure = ${formatCHF(hourly)})`,
+      explanation: `Ton prix minimum (${formatDuration(minutes)} × ${formatCHF(settings.hourlyRate)} de l'heure = ${formatCHF(hourly)})`,
     };
   }
   return {
@@ -398,7 +398,7 @@ export function describeProject(project: {
 }): string {
   const parts = [
     project.style ? `Style ${labelOf(PROJECT_STYLE, project.style).toLowerCase()}` : null,
-    project.bodyZone ? labelOf(BODY_ZONES, project.bodyZone).toLowerCase() : null,
+    project.bodyZone ? labelOf(ALL_BODY_ZONES, project.bodyZone).toLowerCase() : null,
     project.widthCm && project.heightCm ? `${project.widthCm} × ${project.heightCm} cm` : null,
     labelOf(COLOR_MODE, project.colorMode).toLowerCase(),
   ].filter(Boolean);

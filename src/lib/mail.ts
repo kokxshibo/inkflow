@@ -88,6 +88,8 @@ export function textToHtml(text: string) {
 export interface TemplateContext {
   prenom?: string;
   nom?: string;
+  artiste?: string;
+  /** Ancien nom de {{artiste}}, encore compris dans les modèles existants. */
   salon?: string;
   tatoueur?: string;
   date_rdv?: string;

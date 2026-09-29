@@ -276,6 +276,8 @@ export async function prepareFromTemplate(
   const context = {
     prenom: client.firstName,
     nom: client.lastName,
+    artiste: settings.studioName,
+    // Ancien nom de {{artiste}}, encore compris dans les modèles déjà écrits.
     salon: settings.studioName,
     tatoueur: settings.ownerName,
     signature: buildSignature(settings),

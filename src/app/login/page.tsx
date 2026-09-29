@@ -45,7 +45,7 @@ export default async function LoginPage({
 
         <div className="relative max-w-md">
           <h2 className="text-[32px] leading-[1.15] font-semibold tracking-[-0.03em]">
-            Tout le salon,
+            Toute ton activité,
             <br />
             <span className="text-[var(--accent)]">au même endroit.</span>
           </h2>
@@ -85,7 +85,7 @@ export default async function LoginPage({
 
           <h1 className="text-2xl font-semibold tracking-[-0.02em]">Connexion</h1>
           <p className="mt-2 text-[13px] text-[var(--fg-muted)]">
-            Accède à la gestion de ton salon.
+            Accède à ton espace.
           </p>
 
           <LoginForm suite={suite} />

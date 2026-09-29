@@ -10,7 +10,7 @@ export const db =
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = db;
 
-/** Réglages du salon (ligne unique). Créée à la volée si absente. */
+/** Réglages de l'activité (ligne unique). Créée à la volée si absente. */
 export async function getSettings() {
   const existing = await db.settings.findUnique({ where: { id: 1 } });
   if (existing) return existing;

@@ -7,6 +7,7 @@ import { AlertCircle, Save, Calculator } from "lucide-react";
 import { createProject, updateProject, type ProjectFormState } from "./actions";
 import {
   BODY_ZONES,
+  normalizeBodyZone,
   COLOR_MODE,
   PROJECT_KIND,
   PROJECT_STATUS,
@@ -129,7 +130,7 @@ export function ProjectForm({
             <Select
               id="bodyZone"
               name="bodyZone"
-              defaultValue={project?.bodyZone ?? ""}
+              defaultValue={normalizeBodyZone(project?.bodyZone)}
               placeholder="Non défini"
               options={BODY_ZONES.map((o) => ({ value: o.value, label: o.label }))}
             />

@@ -5,7 +5,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "InkFlow — Gestion de salon de tatouage",
+    default: "InkFlow — Gestion pour tatoueur",
     template: "%s · InkFlow",
   },
   description:
@@ -53,7 +53,7 @@ export const viewport: Viewport = {
 
 /**
  * Applique le thème avant le premier rendu pour éviter le flash de couleur.
- * Le dark mode est le défaut : ambiance salon.
+ * Le dark mode est le défaut : ambiance atelier.
  */
 const themeScript = `
 (function(){

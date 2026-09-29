@@ -220,7 +220,7 @@ async function fetchNew(client: ImapFlow, path: string, cursor: FolderCursor | u
   }
 }
 
-/** Vrai si la personne a déjà échangé avec le salon avant ce message. */
+/** Vrai si la personne a déjà échangé avec toi avant ce message. */
 async function hasHistory(
   client: ImapFlow,
   address: string,
@@ -260,13 +260,17 @@ function referencesOf(parsed: ParsedMail): string[] {
   return parsed.references ? [parsed.references] : [];
 }
 
-/** Répond dans le fil de l'e-mail d'origine, depuis l'adresse Gmail reliée. */
+/**
+ * Répond dans le fil de l'e-mail d'origine, depuis l'adresse Gmail reliée.
+ * « auto » : réponse automatique ; « app » : message écrit depuis l'app.
+ */
 async function sendReply(
   user: string,
   pass: string,
   to: { address: string; name: string | null },
   original: Original,
   reply: { text: string; subject: string | null },
+  kind: "auto" | "app",
 ) {
   const settings = await getSettings();
   const originalSubject = original.subject?.trim() || "Ton message";
@@ -285,12 +289,16 @@ async function sendReply(
     html: textToHtml(reply.text),
     inReplyTo: original.messageId ?? undefined,
     references: references.length > 0 ? references : undefined,
-    headers: {
-      // RFC 3834 : évite les boucles avec les répondeurs automatiques.
-      "Auto-Submitted": "auto-replied",
-      "X-Auto-Response-Suppress": "All",
-      "X-InkFlow": "auto",
-    },
+    headers:
+      kind === "auto"
+        ? {
+            // RFC 3834 : évite les boucles avec les répondeurs automatiques.
+            "Auto-Submitted": "auto-replied",
+            "X-Auto-Response-Suppress": "All",
+            "X-InkFlow": "auto",
+          }
+        : // Repère la copie dans « Envoyés » : le message est déjà dans la conversation.
+          { "X-InkFlow": "app" },
   });
   return { messageId: info.messageId as string, subject };
 }
@@ -353,6 +361,7 @@ async function handleIncoming(
       sender,
       { messageId: parsed.messageId, references: referencesOf(parsed), subject },
       reply,
+      "auto",
     );
     await recordMessage(lead.id, {
       direction: "out",
@@ -370,7 +379,7 @@ async function handleIncoming(
 /** Copie des messages envoyés depuis Gmail aux contacts connus (réponses manuelles). */
 async function handleSent(item: Fetched) {
   const { parsed } = item;
-  // Nos réponses automatiques sont déjà dans la conversation.
+  // Messages envoyés par l'app (automatiques ou écrits dans l'app) : déjà enregistrés.
   if (parsed.headers.has("x-inkflow")) return;
   for (const address of allAddresses(parsed.to)) {
     const lead = await findLead("email", address);
@@ -471,42 +480,59 @@ async function saveCursor(cursor: GmailCursor) {
 }
 
 /**
- * Envoie le lien de demande à un contact Gmail, dans le fil de son dernier
- * message (envoi manuel depuis l'app, par exemple si la réponse automatique
- * était désactivée).
+ * Envoie un message à un contact Gmail, dans le fil de son dernier e-mail,
+ * et l'ajoute à la conversation.
  */
-export async function sendLinkByEmail(leadId: string) {
+export async function sendEmailToLead(
+  leadId: string,
+  message: { text: string; subject?: string | null },
+  kind: "auto" | "app",
+) {
   const integration = await getIntegration("gmail");
   const user = integration.account;
   const pass = decryptSecret(integration.secret);
-  if (!user || !pass) throw new Error("Gmail n'est pas connecté.");
+  if (!user || !pass) throw new Error("Gmail n'est pas connecté (Réglages → Connexions).");
 
   const lead = await db.lead.findUniqueOrThrow({ where: { id: leadId } });
-  if (lead.channel !== "email" || !lead.email) throw new Error("Ce contact n'est pas un contact Gmail.");
+  if (lead.channel !== "email") throw new Error("Ce contact n'a pas écrit par e-mail.");
+  const address = lead.email ?? lead.externalId;
 
   const last = await db.leadMessage.findFirst({
     where: { leadId, direction: "in" },
-    orderBy: { sentAt: "desc" },
+    // Deux e-mails datés de la même seconde : le dernier enregistré l'emporte.
+    orderBy: [{ sentAt: "desc" }, { id: "desc" }],
   });
 
-  const reply = await buildAutoReply(integration, lead);
+  let sent: { messageId: string; subject: string };
   try {
-    const sent = await sendReply(
+    sent = await sendReply(
       user,
       pass,
-      { address: lead.email, name: lead.name },
+      { address, name: lead.name },
       { messageId: last?.externalId, subject: last?.subject },
-      reply,
+      { text: message.text, subject: message.subject ?? null },
+      kind,
     );
-    await recordMessage(lead.id, {
-      direction: "out",
-      body: reply.text,
-      subject: sent.subject,
-      externalId: sent.messageId,
-      auto: true,
-    });
-    await db.lead.update({ where: { id: lead.id }, data: { autoRepliedAt: new Date() } });
   } catch (error) {
     throw new Error(explain(error));
   }
+  await recordMessage(lead.id, {
+    direction: "out",
+    body: message.text,
+    subject: sent.subject,
+    externalId: sent.messageId,
+    auto: kind === "auto",
+  });
+}
+
+/**
+ * Envoie le lien de demande à un contact Gmail (envoi manuel depuis l'app,
+ * par exemple si la réponse automatique était désactivée).
+ */
+export async function sendLinkByEmail(leadId: string) {
+  const integration = await getIntegration("gmail");
+  const lead = await db.lead.findUniqueOrThrow({ where: { id: leadId } });
+  const reply = await buildAutoReply(integration, lead);
+  await sendEmailToLead(leadId, reply, "auto");
+  await db.lead.update({ where: { id: leadId }, data: { autoRepliedAt: new Date() } });
 }

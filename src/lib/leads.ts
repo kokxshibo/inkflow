@@ -138,6 +138,8 @@ export async function buildAutoReply(
   const context = {
     prenom,
     lien: leadLink(lead.token),
+    artiste: settings.studioName,
+    // Ancien nom de {{artiste}}, encore compris dans les messages déjà écrits.
     salon: settings.studioName,
     tatoueur: settings.ownerName,
     signature: buildSignature(settings),
@@ -242,7 +244,34 @@ export async function recordMessage(
     where: { id: leadId, OR: [{ lastMessageAt: null }, { lastMessageAt: { lt: sentAt } }] },
     data: { lastMessageAt: sentAt },
   });
+  if (message.direction === "in") {
+    // Heure de réception par l'app, pas celle écrite par l'expéditeur : un
+    // e-mail distribué en retard doit quand même apparaître comme non lu.
+    await db.lead.update({ where: { id: leadId }, data: { lastIncomingAt: new Date() } });
+  }
   return true;
+}
+
+/** Contacts avec un message reçu depuis la dernière lecture (badge du menu). */
+export function countUnreadLeads() {
+  return db.lead.count({
+    where: {
+      lastIncomingAt: { not: null },
+      OR: [{ lastReadAt: null }, { lastReadAt: { lt: db.lead.fields.lastIncomingAt } }],
+    },
+  });
+}
+
+export async function markLeadRead(leadId: string) {
+  await db.lead.update({ where: { id: leadId }, data: { lastReadAt: new Date() } });
+}
+
+/**
+ * Instagram n'accepte une réponse que dans les 24 h qui suivent le dernier
+ * message de la personne. Renvoie l'échéance, ou null si aucun message reçu.
+ */
+export function instagramReplyDeadline(lastIncomingAt: Date | null) {
+  return lastIncomingAt ? new Date(lastIncomingAt.getTime() + 24 * 60 * 60 * 1000) : null;
 }
 
 /**

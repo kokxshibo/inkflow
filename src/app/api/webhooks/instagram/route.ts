@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
   return new NextResponse("Jeton de vérification invalide", { status: 403 });
 }
 
-/** Messages Instagram entrants (et copies des messages envoyés par le salon). */
+/** Messages Instagram entrants (et copies des messages que tu envoies). */
 export async function POST(request: NextRequest) {
   const raw = await request.text();
   const integration = await db.integration.findUnique({ where: { channel: "instagram" } });
