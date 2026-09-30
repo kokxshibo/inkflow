@@ -8,10 +8,11 @@ import {
   ShieldAlert,
   HeartPulse,
   Images,
+  MapPin,
   MessagesSquare,
 } from "lucide-react";
 import { db } from "@/lib/db";
-import { formatDate, formatRelative, initials, isMinor, age, parseJsonArray } from "@/lib/utils";
+import { cn, formatDate, formatRelative, initials, isMinor, age, parseJsonArray } from "@/lib/utils";
 import {
   ALL_BODY_ZONES,
   COLOR_MODE,
@@ -54,6 +55,7 @@ export default async function RequestDetailPage({
   if (!request) notFound();
 
   const references = parseJsonArray(request.referenceUrls);
+  const bodyPhotos = parseJsonArray(request.bodyPhotoUrls);
   const lead = request.lead;
   if (lead) await markReadIfNeeded(lead);
   const composer = lead ? await composerPropsFor(lead) : null;
@@ -143,6 +145,38 @@ export default async function RequestDetailPage({
             </CardContent>
           </Card>
 
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MapPin className="size-4 text-[var(--fg-subtle)]" />
+                Emplacement
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p
+                className={
+                  request.bodyZone
+                    ? "text-[13px] text-[var(--fg)] leading-relaxed"
+                    : "text-[13px] text-[var(--fg-subtle)]"
+                }
+              >
+                {request.bodyZone ? labelOf(ALL_BODY_ZONES, request.bodyZone) : "Non précisé"}
+              </p>
+              {bodyPhotos.length > 0 ? (
+                <>
+                  <PhotoGrid urls={bodyPhotos} label="Photo de la zone" className="mt-4" />
+                  <p className="text-[11px] text-[var(--fg-subtle)] mt-3">
+                    À la conversion, ces photos rejoignent la galerie du projet, en « Avant ».
+                  </p>
+                </>
+              ) : (
+                <p className="text-[12px] text-[var(--fg-subtle)] mt-1.5">
+                  Pas de photo de la zone.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
           {references.length > 0 && (
             <Card>
               <CardHeader>
@@ -152,25 +186,7 @@ export default async function RequestDetailPage({
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                  {references.map((url) => (
-                    <a
-                      key={url}
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="aspect-square rounded-[var(--radius-md)] overflow-hidden border border-[var(--border)] bg-[var(--surface-2)] group"
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={url}
-                        alt=""
-                        loading="lazy"
-                        className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                    </a>
-                  ))}
-                </div>
+                <PhotoGrid urls={references} label="Référence" />
                 <p className="text-[11px] text-[var(--fg-subtle)] mt-3">
                   Ces images suivront automatiquement le projet à la conversion.
                 </p>
@@ -270,9 +286,6 @@ export default async function RequestDetailPage({
             </CardHeader>
             <CardContent>
               <dl>
-                <DataRow label="Emplacement">
-                  {labelOf(ALL_BODY_ZONES, request.bodyZone)}
-                </DataRow>
                 <DataRow label="Taille">{request.sizeCm ?? "—"}</DataRow>
                 <DataRow label="Rendu">{labelOf(COLOR_MODE, request.colorMode)}</DataRow>
                 <DataRow label="Style">{labelOf(PROJECT_STYLE, request.style)}</DataRow>
@@ -317,5 +330,39 @@ export default async function RequestDetailPage({
         </div>
       </div>
     </>
+  );
+}
+
+/** Vignettes cliquables, ouvertes en grand dans un nouvel onglet. */
+function PhotoGrid({
+  urls,
+  label,
+  className,
+}: {
+  urls: string[];
+  label: string;
+  className?: string;
+}) {
+  return (
+    <div className={cn("grid grid-cols-2 sm:grid-cols-3 gap-2.5", className)}>
+      {urls.map((url, index) => (
+        <a
+          key={url}
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={`${label} ${index + 1}, ouvrir en grand`}
+          className="aspect-square rounded-[var(--radius-md)] overflow-hidden border border-[var(--border)] bg-[var(--surface-2)] group"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={url}
+            alt=""
+            loading="lazy"
+            className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+        </a>
+      ))}
+    </div>
   );
 }

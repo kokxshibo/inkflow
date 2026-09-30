@@ -282,7 +282,7 @@ async function sendReply(
   ];
 
   const info = await smtpTransport(user, pass).sendMail({
-    from: { name: settings.studioName, address: user },
+    from: { name: settings.ownerName, address: user },
     to: to.name ? { name: to.name, address: to.address } : to.address,
     subject,
     text: reply.text,

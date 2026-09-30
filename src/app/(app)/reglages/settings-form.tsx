@@ -121,23 +121,17 @@ export function SettingsForm({
               </CardHeader>
               <CardContent className="grid gap-4 sm:grid-cols-2">
                 <Field
-                  label="Nom d'artiste"
-                  htmlFor="studioName"
+                  label="Prénom et nom"
+                  htmlFor="ownerName"
                   required
-                  hint="Affiché sur tes devis, tes factures et ton formulaire de demande."
+                  error={state.fieldErrors?.ownerName}
+                  hint="Affiché sur tes devis, tes factures, ton formulaire de demande et ta signature."
                 >
-                  <Input
-                    id="studioName"
-                    name="studioName"
-                    required
-                    defaultValue={settings.studioName}
-                    placeholder="Marc Ink"
-                  />
-                </Field>
-                <Field label="Prénom et nom" htmlFor="ownerName">
                   <Input
                     id="ownerName"
                     name="ownerName"
+                    required
+                    autoComplete="name"
                     defaultValue={settings.ownerName}
                     placeholder="Marc Ducrey"
                   />
@@ -606,13 +600,17 @@ export function SettingsForm({
                 </p>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Field label="Signature d'e-mail" htmlFor="emailSignature">
+                <Field
+                  label="Signature d'e-mail"
+                  htmlFor="emailSignature"
+                  hint="Laissée vide : ton prénom et nom, ton téléphone et ton site, sans adresse ni pays."
+                >
                   <Textarea
                     id="emailSignature"
                     name="emailSignature"
-                    rows={5}
+                    rows={4}
                     defaultValue={settings.emailSignature ?? ""}
-                    placeholder={"Marc Ducrey\nMarc Ink\nRue du Rhône 12, 1204 Genève\n+41 79 123 45 67"}
+                    placeholder={"Marc Ducrey\n+41 79 123 45 67\nmarcducrey.ch"}
                   />
                 </Field>
                 <Field

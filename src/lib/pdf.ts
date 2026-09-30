@@ -62,7 +62,7 @@ export async function generateDocumentPdf(
     bufferPages: true,
     info: {
       Title: `${payload.kind === "quote" ? "Devis" : "Facture"} ${payload.number}`,
-      Author: settings.studioName,
+      Author: settings.ownerName,
     },
   });
 
@@ -110,13 +110,12 @@ function drawBody(
   const isQuote = payload.kind === "quote";
 
   // ── En-tête ──
-  doc.fillColor(INK).fontSize(16).font("Helvetica-Bold").text(settings.studioName, MARGIN, MARGIN);
+  doc.fillColor(INK).fontSize(16).font("Helvetica-Bold").text(settings.ownerName, MARGIN, MARGIN);
 
   let y = doc.y + 4;
   doc.fontSize(8.5).font("Helvetica").fillColor(MUTED);
 
   const senderLines = [
-    settings.ownerName,
     settings.addressLine,
     [settings.postalCode, settings.city].filter(Boolean).join(" "),
     settings.email,
@@ -363,7 +362,7 @@ function attachQrBill(
       buildingNumber: creditorAddress.buildingNumber,
       city: settings.city,
       country: settings.country || "CH",
-      name: settings.studioName,
+      name: settings.ownerName,
       zip: settings.postalCode,
     },
     // La référence QRR n'est valable qu'avec un QR-IBAN.

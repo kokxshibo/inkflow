@@ -58,7 +58,6 @@ async function main() {
     await db.settings.create({
       data: {
         id: 1,
-        studioName: "Marc Ink",
         ownerName: "Marc Ducrey",
         addressLine: "Rue du Rhône 12",
         postalCode: "1204",

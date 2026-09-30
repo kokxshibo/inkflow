@@ -40,7 +40,7 @@ export default async function PublicInvoicePage({
       <header className="border-b border-[var(--border)] bg-[var(--bg-subtle)]">
         <div className="max-w-3xl mx-auto px-6 py-8">
           <p className="text-[11px] uppercase tracking-[0.2em] text-[var(--accent)]">
-            {settings.studioName}
+            {settings.ownerName}
           </p>
           <h1 className="text-2xl font-semibold tracking-[-0.02em] mt-2">
             Facture {invoice.number}
@@ -133,7 +133,7 @@ export default async function PublicInvoicePage({
 
       <footer className="border-t border-[var(--border)] py-8 mt-8">
         <p className="text-center text-[12px] text-[var(--fg-subtle)]">
-          {settings.studioName}
+          {settings.ownerName}
           {settings.email && ` · ${settings.email}`}
           {settings.ide && ` · ${settings.ide}`}
         </p>

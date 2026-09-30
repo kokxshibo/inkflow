@@ -15,8 +15,7 @@ const optionalString = z
   .default(null);
 
 const settingsSchema = z.object({
-  studioName: z.string().trim().min(1, "Ton nom d'artiste est requis"),
-  ownerName: z.string().trim().default(""),
+  ownerName: z.string().trim().min(1, "Ton prénom et ton nom sont requis"),
   tagline: optionalString,
   addressLine: z.string().trim().default(""),
   postalCode: z.string().trim().default(""),
@@ -115,6 +114,8 @@ export async function saveSettings(
       minimumPrice: parseCHF(input.minimumPrice),
     },
   });
+  // Un seul nom : celui du compte suit celui des réglages.
+  await db.user.updateMany({ where: { role: "owner" }, data: { name: input.ownerName } });
 
   await logActivity("settings.update", "Réglages mis à jour");
 

@@ -5,27 +5,35 @@ import { startTransition, useActionState } from "react";
 import { motion } from "motion/react";
 import {
   AlertCircle,
-  Check,
+  Camera,
   CheckCircle2,
   ImagePlus,
   Send,
   X,
   Sparkles,
+  type LucideIcon,
 } from "lucide-react";
 import { submitRequest, type RequestFormState } from "./actions";
 import {
   BUDGET_LABELS,
   COLOR_LABELS,
   STYLE_LABELS,
-  ZONE_LABELS,
   translatedOptions,
   type FormTexts,
   type Lang,
 } from "./i18n";
+import { shrinkPhoto } from "@/lib/photo";
 import { cn, toDateInput } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { CheckboxField, Field, Input, Select, Textarea } from "@/components/ui/field";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/avif"];
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+/** Sous la limite d'envoi du serveur (12 Mo), avec de la marge pour le texte. */
+const MAX_TOTAL_BYTES = 11 * 1024 * 1024;
+const MAX_BODY_PHOTOS = 3;
+const MAX_REFERENCES = 6;
 
 export interface RequestPrefill {
   firstName?: string;
@@ -50,36 +58,17 @@ export function RequestForm({
     submitRequest,
     {},
   );
-  const [files, setFiles] = React.useState<File[]>([]);
-  const [previews, setPreviews] = React.useState<string[]>([]);
+  const [bodyPhotos, setBodyPhotos] = React.useState<File[]>([]);
+  const [references, setReferences] = React.useState<File[]>([]);
+  // Photos en cours d'allègement : l'envoi attend qu'elles soient prêtes.
+  const [preparing, setPreparing] = React.useState(0);
+  const [sizeError, setSizeError] = React.useState<string | null>(null);
   const [hasContraindications, setHasContraindications] = React.useState(false);
-  // null : aucun emplacement choisi ; "" : « je ne sais pas encore ».
-  const [zone, setZone] = React.useState<string | null>(null);
-  const inputRef = React.useRef<HTMLInputElement>(null);
 
-  // Prévisualisation locale des images choisies
-  React.useEffect(() => {
-    const urls = files.map((file) => URL.createObjectURL(file));
-    setPreviews(urls);
-    return () => urls.forEach((url) => URL.revokeObjectURL(url));
-  }, [files]);
-
-  function addFiles(list: FileList | null) {
-    if (!list) return;
-    setFiles((current) => [...current, ...Array.from(list)].slice(0, 6));
-  }
-
-  function removeFile(index: number) {
-    setFiles((current) => current.filter((_, i) => i !== index));
-  }
-
-  // Synchronise la sélection locale avec l'input du formulaire
-  React.useEffect(() => {
-    if (!inputRef.current) return;
-    const transfer = new DataTransfer();
-    for (const file of files) transfer.items.add(file);
-    inputRef.current.files = transfer.files;
-  }, [files]);
+  const onBusy = React.useCallback(
+    (busy: boolean) => setPreparing((count) => Math.max(0, count + (busy ? 1 : -1))),
+    [],
+  );
 
   if (state.success) {
     return (
@@ -107,7 +96,17 @@ export function RequestForm({
       // restent en place au lieu d'être effacés.
       onSubmit={(event) => {
         event.preventDefault();
+        if (preparing > 0) return;
+        const total = [...bodyPhotos, ...references].reduce((sum, file) => sum + file.size, 0);
+        if (total > MAX_TOTAL_BYTES) {
+          setSizeError(t.imagesTooHeavy);
+          return;
+        }
+        setSizeError(null);
+        // Les photos, déjà allégées, sont ajoutées ici plutôt que lues dans les champs.
         const data = new FormData(event.currentTarget);
+        for (const file of bodyPhotos) data.append("bodyPhotos", file);
+        for (const file of references) data.append("references", file);
         startTransition(() => formAction(data));
       }}
       className="space-y-5"
@@ -200,7 +199,7 @@ export function RequestForm({
         </CardContent>
       </Card>
 
-      {/* ── Le projet : emplacement, description, puis images ── */}
+      {/* ── Le projet : emplacement et sa photo, description, puis images ── */}
       <Card>
         <CardHeader>
           <div>
@@ -212,20 +211,36 @@ export function RequestForm({
           </div>
         </CardHeader>
         <CardContent className="space-y-5">
-          <div className="flex flex-col gap-1.5">
-            <span id="bodyZone-label" className="text-[13px] font-medium text-[var(--fg-muted)]">
-              {t.zoneQuestion}
-            </span>
-            <input type="hidden" name="bodyZone" value={zone ?? ""} />
-            <ZonePicker
-              value={zone}
-              onChange={setZone}
-              options={[
-                ...translatedOptions(ZONE_LABELS, lang),
-                { value: "", label: t.zoneUnknown },
-              ]}
+          <Field
+            label={t.zoneQuestion}
+            htmlFor="bodyZone"
+            error={state.fieldErrors?.bodyZone}
+            hint={t.zoneHint}
+          >
+            <Input
+              id="bodyZone"
+              name="bodyZone"
+              maxLength={120}
+              autoComplete="off"
+              placeholder={t.zonePlaceholder}
             />
-          </div>
+          </Field>
+
+          <PhotoPicker
+            id="bodyPhotos"
+            label={t.bodyPhoto}
+            hint={t.bodyPhotoHint}
+            icon={Camera}
+            addLabel={t.addBodyPhoto}
+            addMoreLabel={t.addMoreBodyPhotos}
+            formats={t.bodyPhotoFormats}
+            max={MAX_BODY_PHOTOS}
+            multiple
+            files={bodyPhotos}
+            onChange={setBodyPhotos}
+            onBusy={onBusy}
+            texts={t}
+          />
 
           <Field
             label={t.description}
@@ -243,61 +258,21 @@ export function RequestForm({
             />
           </Field>
 
-          <div className="flex flex-col gap-1.5">
-            <span className="text-[13px] font-medium text-[var(--fg-muted)]">{t.images}</span>
-            <p className="text-xs text-[var(--fg-subtle)] leading-relaxed -mt-0.5 mb-1">
-              {t.imagesHint}
-            </p>
-            <input
-              ref={inputRef}
-              type="file"
-              name="references"
-              accept="image/jpeg,image/png,image/webp,image/avif"
-              multiple
-              className="sr-only"
-              onChange={(event) => addFiles(event.target.files)}
-            />
-
-            {previews.length > 0 && (
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5 mb-1">
-                {previews.map((preview, index) => (
-                  <div
-                    key={preview}
-                    className="relative aspect-square rounded-[var(--radius-md)] overflow-hidden border border-[var(--border)] group"
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={preview} alt="" className="size-full object-cover" />
-                    <button
-                      type="button"
-                      onClick={() => removeFile(index)}
-                      className="absolute top-1 right-1 grid place-items-center size-6 rounded-full bg-black/70 text-white sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
-                      aria-label={t.removeImage}
-                    >
-                      <X className="size-3" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {files.length < 6 && (
-              <button
-                type="button"
-                onClick={() => inputRef.current?.click()}
-                className={cn(
-                  "w-full flex flex-col items-center justify-center py-7 px-6",
-                  "rounded-[var(--radius-lg)] border border-dashed border-[var(--border-strong)]",
-                  "transition-all duration-200 hover:border-[var(--accent)] hover:bg-[var(--accent-soft)]",
-                )}
-              >
-                <ImagePlus className="size-5 text-[var(--fg-subtle)]" />
-                <span className="text-[13px] font-medium mt-2.5">
-                  {files.length > 0 ? t.addMoreImages : t.addImages}
-                </span>
-                <span className="text-[11px] text-[var(--fg-subtle)] mt-1">{t.imageFormats}</span>
-              </button>
-            )}
-          </div>
+          <PhotoPicker
+            id="references"
+            label={t.images}
+            hint={t.imagesHint}
+            icon={ImagePlus}
+            addLabel={t.addImages}
+            addMoreLabel={t.addMoreImages}
+            formats={t.imageFormats}
+            max={MAX_REFERENCES}
+            multiple
+            files={references}
+            onChange={setReferences}
+            onBusy={onBusy}
+            texts={t}
+          />
         </CardContent>
       </Card>
 
@@ -395,9 +370,23 @@ export function RequestForm({
         </CardContent>
       </Card>
 
-      <Button type="submit" variant="primary" size="lg" loading={pending} className="w-full">
+      {sizeError && (
+        <p role="alert" className="flex items-start gap-2 text-[13px] text-[var(--danger)]">
+          <AlertCircle className="size-4 shrink-0 mt-0.5" />
+          {sizeError}
+        </p>
+      )}
+
+      <Button
+        type="submit"
+        variant="primary"
+        size="lg"
+        loading={pending}
+        disabled={preparing > 0}
+        className="w-full"
+      >
         <Send />
-        {t.submit}
+        {preparing > 0 ? t.preparingImages : t.submit}
       </Button>
 
       <p className="text-center text-[11px] text-[var(--fg-subtle)]">{t.afterSubmit}</p>
@@ -405,49 +394,138 @@ export function RequestForm({
   );
 }
 
-/** Choix de l'emplacement : des cases à toucher, plus rapides qu'une liste au pouce. */
-function ZonePicker({
-  value,
+/**
+ * Ajout de photos avec aperçu. Sur téléphone, le bouton propose l'appareil
+ * photo ou la galerie. Les photos sont allégées avant d'être gardées.
+ */
+function PhotoPicker({
+  id,
+  label,
+  hint,
+  icon: Icon,
+  addLabel,
+  addMoreLabel,
+  formats,
+  max,
+  multiple = false,
+  files,
   onChange,
-  options,
+  onBusy,
+  texts: t,
 }: {
-  value: string | null;
-  onChange: (value: string) => void;
-  options: { value: string; label: string }[];
+  id: string;
+  label: string;
+  hint: string;
+  icon: LucideIcon;
+  addLabel: string;
+  addMoreLabel: string;
+  formats: string;
+  max: number;
+  multiple?: boolean;
+  files: File[];
+  onChange: React.Dispatch<React.SetStateAction<File[]>>;
+  onBusy: (busy: boolean) => void;
+  texts: FormTexts;
 }) {
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  const [previews, setPreviews] = React.useState<string[]>([]);
+  const [error, setError] = React.useState<string | null>(null);
+
+  // Aperçus locaux, libérés quand la sélection change.
+  React.useEffect(() => {
+    const urls = files.map((file) => URL.createObjectURL(file));
+    setPreviews(urls);
+    return () => urls.forEach((url) => URL.revokeObjectURL(url));
+  }, [files]);
+
+  async function add(list: FileList | null) {
+    const chosen = Array.from(list ?? []);
+    // Vidé pour pouvoir choisir à nouveau la même photo après l'avoir retirée.
+    if (inputRef.current) inputRef.current.value = "";
+    if (chosen.length === 0) return;
+
+    const supported = chosen.filter((file) => ACCEPTED_TYPES.includes(file.type));
+    let problem = supported.length < chosen.length ? t.unsupportedImage : null;
+    onBusy(true);
+    try {
+      const light = await Promise.all(supported.map(shrinkPhoto));
+      const fitting = light.filter((file) => file.size <= MAX_IMAGE_BYTES);
+      if (fitting.length < light.length) problem = t.imageTooLarge;
+      onChange((current) => [...current, ...fitting].slice(0, max));
+    } finally {
+      onBusy(false);
+    }
+    setError(problem);
+  }
+
   return (
-    <div
-      role="radiogroup"
-      aria-labelledby="bodyZone-label"
-      className="grid grid-cols-2 sm:grid-cols-3 gap-2"
-    >
-      {options.map((option) => {
-        const selected = value === option.value;
-        return (
-          <button
-            key={option.value || "unknown"}
-            type="button"
-            role="radio"
-            aria-checked={selected}
-            onClick={() => onChange(option.value)}
-            className={cn(
-              "flex items-center justify-between gap-2 min-h-11 px-3 py-2 text-left",
-              "rounded-[var(--radius-md)] border text-[13px] font-medium",
-              "transition-all duration-200 active:scale-[0.985]",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]",
-              selected
-                ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--fg)]"
-                : "border-[var(--border)] bg-[var(--bg-subtle)] text-[var(--fg-muted)] hover:border-[var(--border-strong)]",
-              option.value === "" && "sm:col-span-2 justify-center",
-            )}
-          >
-            <span>{option.label}</span>
-            {selected && option.value !== "" && (
-              <Check className="size-3.5 shrink-0 text-[var(--accent)]" />
-            )}
-          </button>
-        );
-      })}
+    <div className="flex flex-col gap-1.5">
+      <span id={`${id}-label`} className="text-[13px] font-medium text-[var(--fg-muted)] leading-none">
+        {label}
+      </span>
+      <p id={`${id}-hint`} className="text-xs text-[var(--fg-subtle)] leading-relaxed -mt-0.5 mb-1">
+        {hint}
+      </p>
+      <input
+        ref={inputRef}
+        id={id}
+        type="file"
+        accept={ACCEPTED_TYPES.join(",")}
+        multiple={multiple}
+        className="sr-only"
+        tabIndex={-1}
+        aria-hidden
+        onChange={(event) => void add(event.target.files)}
+      />
+
+      {previews.length > 0 && (
+        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5 mb-1">
+          {previews.map((preview, index) => (
+            <div
+              key={preview}
+              className="relative aspect-square rounded-[var(--radius-md)] overflow-hidden border border-[var(--border)] group"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={preview} alt="" className="size-full object-cover" />
+              <button
+                type="button"
+                onClick={() => onChange((current) => current.filter((_, i) => i !== index))}
+                className="absolute top-1 right-1 grid place-items-center size-6 rounded-full bg-black/70 text-white sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
+                aria-label={t.removeImage}
+              >
+                <X className="size-3" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {files.length < max && (
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          aria-labelledby={`${id}-label ${id}-action`}
+          aria-describedby={`${id}-hint`}
+          className={cn(
+            "w-full flex flex-col items-center justify-center py-7 px-6",
+            "rounded-[var(--radius-lg)] border border-dashed border-[var(--border-strong)]",
+            "transition-all duration-200 hover:border-[var(--accent)] hover:bg-[var(--accent-soft)]",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]",
+          )}
+        >
+          <Icon className="size-5 text-[var(--fg-subtle)]" />
+          <span id={`${id}-action`} className="text-[13px] font-medium mt-2.5">
+            {files.length > 0 ? addMoreLabel : addLabel}
+          </span>
+          <span className="text-[11px] text-[var(--fg-subtle)] mt-1">{formats}</span>
+        </button>
+      )}
+
+      {error && (
+        <p role="alert" className="text-xs text-[var(--danger)]">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

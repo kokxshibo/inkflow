@@ -142,10 +142,15 @@ const LEGACY_BODY_ZONES: Option[] = [
 /** Pour l'affichage : comprend aussi les anciennes valeurs. */
 export const ALL_BODY_ZONES: Option[] = [...BODY_ZONES, ...LEGACY_BODY_ZONES];
 
-/** Ramène une ancienne valeur à l'emplacement simplifié correspondant (« bras_g » → « bras »). */
+/**
+ * Emplacement à présélectionner : une ancienne valeur est ramenée à
+ * l'emplacement simplifié (« bras_g » → « bras »), un emplacement écrit
+ * librement par le client (formulaire de demande) est gardé tel quel.
+ */
 export function normalizeBodyZone(value: string | null | undefined): string {
   if (!value) return "";
   if (BODY_ZONES.some((zone) => zone.value === value)) return value;
+  if (!LEGACY_BODY_ZONES.some((zone) => zone.value === value)) return value;
   const base = value.replace(/_(g|d|haut|bas|complet)$/, "");
   return BODY_ZONES.some((zone) => zone.value === base) ? base : "autre";
 }
@@ -258,8 +263,7 @@ export function toneOf(options: Option[], value: string | null | undefined): Ton
 export const TEMPLATE_VARIABLES = [
   { key: "prenom", label: "Prénom du client" },
   { key: "nom", label: "Nom du client" },
-  { key: "artiste", label: "Ton nom d'artiste" },
-  { key: "tatoueur", label: "Ton nom" },
+  { key: "tatoueur", label: "Ton prénom et nom" },
   { key: "date_rdv", label: "Date du rendez-vous" },
   { key: "heure_rdv", label: "Heure du rendez-vous" },
   { key: "projet", label: "Titre du projet" },

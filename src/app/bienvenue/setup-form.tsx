@@ -37,28 +37,20 @@ export function SetupForm({ setupKey }: { setupKey?: string }) {
         </CardHeader>
         <CardContent className="space-y-4">
           <Field
-            label="Nom d'artiste"
-            htmlFor="studioName"
-            required
-            error={state.fieldErrors?.studioName}
-            hint="Affiché sur tes devis, tes factures et ton formulaire de demande."
-          >
-            <Input
-              id="studioName"
-              name="studioName"
-              required
-              autoFocus
-              placeholder="Marc Ink"
-            />
-          </Field>
-
-          <Field
-            label="Ton nom"
+            label="Prénom et nom"
             htmlFor="ownerName"
             required
             error={state.fieldErrors?.ownerName}
+            hint="Affiché sur tes devis, tes factures, ton formulaire de demande et ta signature."
           >
-            <Input id="ownerName" name="ownerName" required placeholder="Marc Ducrey" />
+            <Input
+              id="ownerName"
+              name="ownerName"
+              required
+              autoFocus
+              autoComplete="name"
+              placeholder="Marc Ducrey"
+            />
           </Field>
 
           <div className="grid gap-4 sm:grid-cols-2">

@@ -41,8 +41,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <AppShell
-      user={{ name: session.name, email: session.email }}
-      studioName={settings.studioName}
+      // Le nom vient des réglages : modifié là, il change partout, sans se reconnecter.
+      user={{ name: settings.ownerName || session.name, email: session.email }}
+      ownerName={settings.ownerName}
       counts={{
         // Badge « Demandes » : nouvelles demandes + conversations Instagram / Gmail non lues.
         requests: newRequests + unreadConversations,

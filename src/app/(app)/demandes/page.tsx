@@ -303,7 +303,9 @@ export default async function RequestsPage({
 
                   <div className="flex flex-wrap gap-1.5 mt-auto pt-2.5 border-t border-[var(--border)]">
                     {request.bodyZone && (
-                      <Badge>{labelOf(ALL_BODY_ZONES, request.bodyZone)}</Badge>
+                      <Badge className="max-w-56" title={labelOf(ALL_BODY_ZONES, request.bodyZone)}>
+                        <span className="truncate">{labelOf(ALL_BODY_ZONES, request.bodyZone)}</span>
+                      </Badge>
                     )}
                     {request.sizeCm && <Badge>{request.sizeCm}</Badge>}
                     <Badge>{labelOf(COLOR_MODE, request.colorMode)}</Badge>

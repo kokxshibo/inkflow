@@ -88,10 +88,11 @@ export function textToHtml(text: string) {
 export interface TemplateContext {
   prenom?: string;
   nom?: string;
-  artiste?: string;
-  /** Ancien nom de {{artiste}}, encore compris dans les modèles existants. */
-  salon?: string;
+  /** Prénom et nom du tatoueur */
   tatoueur?: string;
+  /** Anciens noms de {{tatoueur}}, encore compris dans les modèles existants. */
+  artiste?: string;
+  salon?: string;
   date_rdv?: string;
   heure_rdv?: string;
   montant?: string;
@@ -111,20 +112,11 @@ export function renderTemplate(template: string, context: TemplateContext): stri
   });
 }
 
+/** Signature par défaut : le nom, le téléphone et le site, sans adresse ni pays. */
 export function buildSignature(settings: Settings): string {
   if (settings.emailSignature) return settings.emailSignature;
 
-  return [
-    settings.ownerName,
-    settings.studioName,
-    [settings.addressLine, [settings.postalCode, settings.city].filter(Boolean).join(" ")]
-      .filter(Boolean)
-      .join(", "),
-    settings.phone,
-    settings.website,
-  ]
-    .filter(Boolean)
-    .join("\n");
+  return [settings.ownerName, settings.phone, settings.website].filter(Boolean).join("\n");
 }
 
 // La liste des variables proposées dans l'éditeur vit dans lib/constants.ts :

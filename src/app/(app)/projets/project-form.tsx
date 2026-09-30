@@ -48,6 +48,7 @@ export function ProjectForm({
   );
 
   const suggestion = sessions * hoursPerSession * hourlyRate;
+  const bodyZone = normalizeBodyZone(project?.bodyZone);
 
   return (
     <form action={formAction} className="space-y-5">
@@ -130,9 +131,15 @@ export function ProjectForm({
             <Select
               id="bodyZone"
               name="bodyZone"
-              defaultValue={normalizeBodyZone(project?.bodyZone)}
+              defaultValue={bodyZone}
               placeholder="Non défini"
-              options={BODY_ZONES.map((o) => ({ value: o.value, label: o.label }))}
+              options={[
+                // Emplacement écrit par le client : proposé en premier pour ne pas le perdre.
+                ...(bodyZone && !BODY_ZONES.some((zone) => zone.value === bodyZone)
+                  ? [{ value: bodyZone, label: bodyZone }]
+                  : []),
+                ...BODY_ZONES.map((o) => ({ value: o.value, label: o.label })),
+              ]}
             />
           </Field>
 

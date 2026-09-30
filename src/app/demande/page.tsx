@@ -18,7 +18,7 @@ export async function generateMetadata({
   searchParams: SearchParams;
 }): Promise<Metadata> {
   const t = dictionary(parseLang((await searchParams).lang));
-  const name = (await isDatabaseReady()) ? (await getSettings()).studioName : "InkFlow";
+  const name = (await isDatabaseReady()) ? (await getSettings()).ownerName || "InkFlow" : "InkFlow";
   return {
     title: t.metaTitle(name),
     description: t.metaDescription(name),
@@ -54,7 +54,7 @@ export default async function PublicRequestPage({ searchParams }: { searchParams
   }
 
   // Seuls des textes simples passent au composant client.
-  const texts = formTexts(lang, settings.studioName);
+  const texts = formTexts(lang, settings.ownerName);
 
   return (
     <div lang={lang} className="min-h-dvh bg-[var(--bg)]">
@@ -71,7 +71,7 @@ export default async function PublicRequestPage({ searchParams }: { searchParams
         </div>
         <div className="relative max-w-2xl mx-auto px-6 pt-8 pb-14 sm:pt-10 sm:pb-20 text-center">
           <p className="text-[11px] uppercase tracking-[0.2em] text-[var(--accent)] mb-3">
-            {settings.studioName}
+            {settings.ownerName}
           </p>
           <h1 className="text-3xl sm:text-4xl font-semibold tracking-[-0.03em] leading-tight">
             {t.title}
@@ -96,9 +96,7 @@ export default async function PublicRequestPage({ searchParams }: { searchParams
       <footer className="border-t border-[var(--border)] py-8">
         <div className="max-w-2xl mx-auto px-6 text-center">
           <p className="text-[12px] text-[var(--fg-subtle)] leading-relaxed">
-            {settings.studioName}
-            {settings.addressLine && ` · ${settings.addressLine}`}
-            {settings.city && `, ${settings.postalCode} ${settings.city}`}
+            {settings.ownerName}
           </p>
           <p className="text-[11px] text-[var(--fg-subtle)] mt-2 leading-relaxed">
             {t.privacy(settings.email || null)}

@@ -153,8 +153,12 @@ automatiquement. Rédaction assistée, aperçu, bouton Envoyer, PDF joint.
 **Rien ne part sans validation humaine.**
 
 ### Demandes (remplace les DM Instagram)
-Formulaire public à mettre en bio Instagram. Conversion en client + projet en un
-clic, les images de référence suivent.
+Formulaire public à mettre en bio Instagram, en français, allemand ou anglais.
+Le client écrit librement où il veut son tatouage et **prend en photo la zone**
+juste en dessous (3 photos maximum, allégées sur son téléphone avant l'envoi),
+puis décrit son idée et ajoute ses images d'inspiration. Conversion en client +
+projet en un clic : les photos de la zone rejoignent la galerie en « Avant », les
+images de référence suivent aussi.
 
 **Réponses automatiques Instagram et Gmail** (Réglages → Connexions) : quand une
 nouvelle personne écrit au sujet d'un tatouage (mots-clés réglables) et qu'on ne

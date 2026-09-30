@@ -52,7 +52,6 @@ export interface ChannelView {
 }
 
 interface Preview {
-  artiste: string;
   tatoueur: string;
   signature: string;
   lien: string;
@@ -553,10 +552,10 @@ function AutoReplyForm({
     .replace(/\{\{\s*(\w+)\s*\}\}/g, (_match, key: string) => {
       const values: Record<string, string> = {
         lien: preview.lien,
-        artiste: preview.artiste,
-        // Ancien nom de {{artiste}}.
-        salon: preview.artiste,
         tatoueur: preview.tatoueur,
+        // Anciens noms de {{tatoueur}}.
+        artiste: preview.tatoueur,
+        salon: preview.tatoueur,
         signature: preview.signature,
       };
       return values[key] ?? "";
@@ -605,7 +604,7 @@ function AutoReplyForm({
         <Field
           label="Message"
           htmlFor={`${channel}-message`}
-          hint="Variables : {{prenom}} {{lien}} {{artiste}} {{tatoueur}} {{signature}}. {{lien}} est obligatoire."
+          hint="Variables : {{prenom}} {{lien}} {{tatoueur}} {{signature}}. {{lien}} est obligatoire."
         >
           <Textarea
             id={`${channel}-message`}

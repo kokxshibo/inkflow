@@ -43,7 +43,7 @@ export default async function PublicQuotePage({
       <header className="border-b border-[var(--border)] bg-[var(--bg-subtle)]">
         <div className="max-w-3xl mx-auto px-6 py-8">
           <p className="text-[11px] uppercase tracking-[0.2em] text-[var(--accent)]">
-            {settings.studioName}
+            {settings.ownerName}
           </p>
           <h1 className="text-2xl font-semibold tracking-[-0.02em] mt-2">
             Ton devis {quote.number}
@@ -75,7 +75,7 @@ export default async function PublicQuotePage({
             <div>
               <p className="text-sm font-medium">Devis accepté — merci !</p>
               <p className="text-[13px] text-[var(--fg-muted)] mt-1 leading-relaxed">
-                {settings.ownerName || settings.studioName} revient vers toi pour fixer la
+                {settings.ownerName} revient vers toi pour fixer la
                 première séance
                 {quote.depositAmount > 0 &&
                   ` et l'acompte de ${formatCHF(quote.depositAmount)}`}
@@ -87,7 +87,7 @@ export default async function PublicQuotePage({
           <div className="p-4 rounded-[var(--radius-md)] bg-[var(--warning-soft)] border border-[var(--warning)]/30">
             <p className="text-[13px] text-[var(--fg-muted)]">
               Ce devis a expiré. Contacte
-              {` ${settings.studioName}`}
+              {` ${settings.ownerName}`}
               {settings.email ? ` à ${settings.email}` : ""}{" "}
               pour en obtenir un nouveau.
             </p>
@@ -133,7 +133,7 @@ export default async function PublicQuotePage({
 
       <footer className="border-t border-[var(--border)] py-8 mt-8">
         <p className="text-center text-[12px] text-[var(--fg-subtle)]">
-          {settings.studioName}
+          {settings.ownerName}
           {settings.email && ` · ${settings.email}`}
           {settings.phone && ` · ${settings.phone}`}
         </p>

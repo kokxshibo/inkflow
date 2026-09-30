@@ -61,10 +61,9 @@ export function DocumentPreview({
       <div className="flex flex-wrap items-start justify-between gap-6 pb-6 border-b border-[var(--border)]">
         <div>
           <p className="text-lg font-semibold tracking-[-0.02em]">
-            {settings.studioName}
+            {settings.ownerName}
           </p>
           <div className="text-[12px] text-[var(--fg-muted)] mt-1.5 leading-relaxed">
-            {settings.ownerName && <p>{settings.ownerName}</p>}
             {settings.addressLine && <p>{settings.addressLine}</p>}
             {(settings.postalCode || settings.city) && (
               <p>

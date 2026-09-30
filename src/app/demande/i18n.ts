@@ -2,8 +2,9 @@
  * Textes du formulaire public de demande, en français (par défaut), allemand
  * (orthographe suisse : « ss » plutôt que « ß ») et anglais.
  *
- * Les valeurs enregistrées (emplacement, style, budget…) restent les mêmes
- * quelle que soit la langue : seuls les libellés affichés changent.
+ * Les valeurs enregistrées (rendu, style, budget) restent les mêmes quelle
+ * que soit la langue : seuls les libellés affichés changent. L'emplacement est
+ * un texte libre, écrit par le client.
  */
 
 export const LANGUAGES = ["fr", "de", "en"] as const;
@@ -20,22 +21,6 @@ export const LANGUAGE_NAMES: Record<Lang, string> = {
 };
 
 type Labels = Record<string, Record<Lang, string>>;
-
-export const ZONE_LABELS: Labels = {
-  avant_bras: { fr: "Avant-bras", de: "Unterarm", en: "Forearm" },
-  bras: { fr: "Bras", de: "Oberarm", en: "Upper arm" },
-  epaule: { fr: "Épaule", de: "Schulter", en: "Shoulder" },
-  main: { fr: "Main / doigts", de: "Hand / Finger", en: "Hand / fingers" },
-  pectoral: { fr: "Poitrine", de: "Brust", en: "Chest" },
-  ventre: { fr: "Ventre", de: "Bauch", en: "Stomach" },
-  cotes: { fr: "Côtes", de: "Rippen", en: "Ribs" },
-  dos: { fr: "Dos", de: "Rücken", en: "Back" },
-  cuisse: { fr: "Cuisse", de: "Oberschenkel", en: "Thigh" },
-  mollet: { fr: "Mollet", de: "Wade", en: "Calf" },
-  cheville: { fr: "Cheville / pied", de: "Knöchel / Fuss", en: "Ankle / foot" },
-  cou: { fr: "Cou / nuque", de: "Hals / Nacken", en: "Neck" },
-  autre: { fr: "Autre", de: "Andere Stelle", en: "Other" },
-};
 
 export const COLOR_LABELS: Labels = {
   blackgrey: { fr: "Noir & gris", de: "Schwarz-Grau", en: "Black & grey" },
@@ -100,17 +85,28 @@ const DICTIONARY = {
     project: "Ton projet",
     projectIntro: "Plus tu es précis·e, plus la réponse sera rapide.",
     zoneQuestion: "Où veux-tu ton tatouage ?",
-    zoneUnknown: "Je ne sais pas encore",
+    zoneHint: "Avec tes mots : le côté, la hauteur, la surface à couvrir…",
+    zonePlaceholder: "Intérieur de l'avant-bras gauche",
+    bodyPhoto: "Photo de l'emplacement",
+    bodyPhotoHint:
+      "Prends en photo la partie du corps à tatouer, bien éclairée et en entier : je verrai la taille et l'endroit exact.",
+    addBodyPhoto: "Prendre ou choisir une photo",
+    addMoreBodyPhotos: "Ajouter une autre photo",
+    bodyPhotoFormats: "Jusqu'à 3 photos · JPG, PNG ou WebP",
     description: "Décris ton idée",
     descriptionHint: "Le motif, l'ambiance, ce que ça représente pour toi, ce que tu veux éviter…",
     descriptionPlaceholder:
       "J'aimerais une carpe koï qui remonte le bras, avec des vagues en fond et des feuilles d'érable. Plutôt dans un style japonais traditionnel. J'aimerais éviter le rouge vif.",
-    images: "Tes images",
-    imagesHint: "Jusqu'à 6 images : inspirations, photo de la zone, croquis.",
+    images: "Tes images d'inspiration",
+    imagesHint: "Jusqu'à 6 images : inspirations, croquis, tatouages qui te plaisent.",
     addImages: "Ajouter des images",
     addMoreImages: "Ajouter d'autres images",
-    imageFormats: "JPG, PNG ou WebP · 8 Mo maximum",
+    imageFormats: "JPG, PNG ou WebP",
     removeImage: "Retirer cette image",
+    unsupportedImage: "Ce format d'image n'est pas pris en charge : utilise une photo JPG, PNG ou WebP.",
+    imageTooLarge: "Une image dépasse 8 Mo et n'a pas pu être ajoutée.",
+    preparingImages: "Préparation des photos…",
+    imagesTooHeavy: "Tes images sont trop lourdes au total : retires-en une ou deux, puis renvoie.",
     details: "Quelques précisions",
     detailsIntro: "Facultatif, mais ça m'aide à te répondre plus vite.",
     size: "Taille approximative",
@@ -146,6 +142,7 @@ const DICTIONARY = {
       lastName: "Ton nom est requis",
       email: "Adresse e-mail invalide",
       description: "Décris ton projet en quelques phrases (20 caractères minimum)",
+      bodyZone: "120 caractères maximum",
       isAdult: "Tu dois être majeur·e pour te faire tatouer",
       consentGiven: "Ton accord est nécessaire pour traiter ta demande",
     },
@@ -177,17 +174,28 @@ const DICTIONARY = {
     project: "Dein Projekt",
     projectIntro: "Je genauer du bist, desto schneller kann ich dir antworten.",
     zoneQuestion: "Wo möchtest du dein Tattoo?",
-    zoneUnknown: "Weiss ich noch nicht",
+    zoneHint: "In deinen Worten: die Seite, die Höhe, die Fläche …",
+    zonePlaceholder: "Innenseite des linken Unterarms",
+    bodyPhoto: "Foto der Stelle",
+    bodyPhotoHint:
+      "Fotografiere die Körperstelle, die tätowiert werden soll, gut beleuchtet und vollständig: So sehe ich die Grösse und die genaue Stelle.",
+    addBodyPhoto: "Foto aufnehmen oder auswählen",
+    addMoreBodyPhotos: "Weiteres Foto hinzufügen",
+    bodyPhotoFormats: "Bis zu 3 Fotos · JPG, PNG oder WebP",
     description: "Beschreibe deine Idee",
     descriptionHint: "Das Motiv, die Stimmung, was es dir bedeutet, was du vermeiden möchtest …",
     descriptionPlaceholder:
       "Ich hätte gerne einen Koi-Karpfen, der den Arm hinaufschwimmt, mit Wellen im Hintergrund und Ahornblättern. Eher im traditionellen japanischen Stil. Knalliges Rot möchte ich vermeiden.",
-    images: "Deine Bilder",
-    imagesHint: "Bis zu 6 Bilder: Inspirationen, ein Foto der Stelle, Skizzen.",
+    images: "Deine Inspirationsbilder",
+    imagesHint: "Bis zu 6 Bilder: Inspirationen, Skizzen, Tattoos, die dir gefallen.",
     addImages: "Bilder hinzufügen",
     addMoreImages: "Weitere Bilder hinzufügen",
-    imageFormats: "JPG, PNG oder WebP · max. 8 MB",
+    imageFormats: "JPG, PNG oder WebP",
     removeImage: "Bild entfernen",
+    unsupportedImage: "Dieses Bildformat wird nicht unterstützt: Bitte verwende ein JPG-, PNG- oder WebP-Foto.",
+    imageTooLarge: "Ein Bild ist grösser als 8 MB und konnte nicht hinzugefügt werden.",
+    preparingImages: "Fotos werden vorbereitet …",
+    imagesTooHeavy: "Deine Bilder sind insgesamt zu gross: Entferne ein oder zwei und sende erneut.",
     details: "Ein paar Details",
     detailsIntro: "Optional, aber so kann ich dir schneller antworten.",
     size: "Ungefähre Grösse",
@@ -223,6 +231,7 @@ const DICTIONARY = {
       lastName: "Bitte gib deinen Nachnamen an",
       email: "Ungültige E-Mail-Adresse",
       description: "Beschreibe dein Projekt in ein paar Sätzen (mindestens 20 Zeichen)",
+      bodyZone: "Höchstens 120 Zeichen",
       isAdult: "Du musst volljährig sein, um dich tätowieren zu lassen",
       consentGiven: "Deine Zustimmung ist nötig, um deine Anfrage zu bearbeiten",
     },
@@ -254,17 +263,28 @@ const DICTIONARY = {
     project: "Your project",
     projectIntro: "The more precise you are, the faster I can reply.",
     zoneQuestion: "Where would you like your tattoo?",
-    zoneUnknown: "Not sure yet",
+    zoneHint: "In your own words: the side, the height, the area to cover…",
+    zonePlaceholder: "Inside of the left forearm",
+    bodyPhoto: "Photo of the area",
+    bodyPhotoHint:
+      "Take a photo of the part of your body you want tattooed, well lit and in full: I'll see the exact size and spot.",
+    addBodyPhoto: "Take or choose a photo",
+    addMoreBodyPhotos: "Add another photo",
+    bodyPhotoFormats: "Up to 3 photos · JPG, PNG or WebP",
     description: "Describe your idea",
     descriptionHint: "The design, the mood, what it means to you, what you'd like to avoid…",
     descriptionPlaceholder:
       "I'd like a koi carp swimming up the arm, with waves in the background and maple leaves. Rather in a traditional Japanese style. I'd like to avoid bright red.",
-    images: "Your images",
-    imagesHint: "Up to 6 images: inspiration, a photo of the area, sketches.",
+    images: "Your inspiration images",
+    imagesHint: "Up to 6 images: inspiration, sketches, tattoos you like.",
     addImages: "Add images",
     addMoreImages: "Add more images",
-    imageFormats: "JPG, PNG or WebP · 8 MB max.",
+    imageFormats: "JPG, PNG or WebP",
     removeImage: "Remove this image",
+    unsupportedImage: "This image format isn't supported: please use a JPG, PNG or WebP photo.",
+    imageTooLarge: "An image is larger than 8 MB and couldn't be added.",
+    preparingImages: "Preparing photos…",
+    imagesTooHeavy: "Your images are too large in total: remove one or two, then send again.",
     details: "A few details",
     detailsIntro: "Optional, but it helps me reply faster.",
     size: "Approximate size",
@@ -299,6 +319,7 @@ const DICTIONARY = {
       lastName: "Please enter your last name",
       email: "Invalid email address",
       description: "Describe your project in a few sentences (at least 20 characters)",
+      bodyZone: "120 characters maximum",
       isAdult: "You must be an adult to get tattooed",
       consentGiven: "Your consent is needed to handle your request",
     },

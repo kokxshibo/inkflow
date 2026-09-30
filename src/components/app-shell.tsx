@@ -65,12 +65,12 @@ export interface ShellCounts {
 export function AppShell({
   children,
   user,
-  studioName,
+  ownerName,
   counts,
 }: {
   children: React.ReactNode;
   user: { name: string; email: string };
-  studioName: string;
+  ownerName: string;
   counts: ShellCounts;
 }) {
   const pathname = usePathname();
@@ -194,7 +194,7 @@ export function AppShell({
           sections={sections}
           pathname={pathname}
           collapsed={collapsed}
-          studioName={studioName}
+          ownerName={ownerName}
           user={user}
           theme={theme}
           onToggleTheme={toggleTheme}
@@ -230,7 +230,7 @@ export function AppShell({
                 sections={sections}
                 pathname={pathname}
                 collapsed={false}
-                studioName={studioName}
+                ownerName={ownerName}
                 user={user}
                 theme={theme}
                 onToggleTheme={toggleTheme}
@@ -420,7 +420,7 @@ function SidebarBody({
   sections,
   pathname,
   collapsed,
-  studioName,
+  ownerName,
   user,
   theme,
   onToggleTheme,
@@ -431,7 +431,7 @@ function SidebarBody({
   sections: NavSection[];
   pathname: string;
   collapsed: boolean;
-  studioName: string;
+  ownerName: string;
   user: { name: string; email: string };
   theme: "dark" | "light";
   onToggleTheme: () => void;
@@ -460,7 +460,7 @@ function SidebarBody({
           {!collapsed && (
             <span className="min-w-0">
               <span className="block text-[13px] font-semibold text-[var(--fg)] truncate leading-tight">
-                {studioName}
+                {ownerName}
               </span>
               <span className="block text-[10px] text-[var(--fg-subtle)] uppercase tracking-wider">
                 InkFlow

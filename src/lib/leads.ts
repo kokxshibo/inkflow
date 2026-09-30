@@ -138,10 +138,10 @@ export async function buildAutoReply(
   const context = {
     prenom,
     lien: leadLink(lead.token),
-    artiste: settings.studioName,
-    // Ancien nom de {{artiste}}, encore compris dans les messages déjà écrits.
-    salon: settings.studioName,
     tatoueur: settings.ownerName,
+    // Anciens noms de {{tatoueur}}, encore compris dans les messages déjà écrits.
+    artiste: settings.ownerName,
+    salon: settings.ownerName,
     signature: buildSignature(settings),
     ...extra,
   };

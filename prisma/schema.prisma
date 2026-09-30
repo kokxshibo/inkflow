@@ -13,11 +13,10 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-/// Reglages du salon — ligne unique (id = 1)
+/// Reglages de l'activite — ligne unique (id = 1)
 model Settings {
   id          Int     @id @default(1)
-  studioName  String  @default("Mon salon")
-  ownerName   String  @default("")
+  ownerName   String  @default("") // prenom et nom, seul nom affiche partout
   tagline     String?
   addressLine String  @default("")
   postalCode  String  @default("")
@@ -381,13 +380,14 @@ model ProjectRequest {
   instagram String?
   birthDate DateTime?
 
-  description  String
-  bodyZone     String?
-  sizeCm       String?
-  colorMode    String  @default("blackgrey")
-  style        String?
-  budget       String?
-  availability String?
+  description   String
+  bodyZone      String? // texte libre saisi par le client
+  bodyPhotoUrls String  @default("[]") // JSON string[] : photos de la zone a tatouer
+  sizeCm        String?
+  colorMode     String  @default("blackgrey")
+  style         String?
+  budget        String?
+  availability  String?
 
   isAdult              Boolean @default(false)
   hasContraindications Boolean @default(false)
@@ -418,11 +418,11 @@ model Integration {
   channel   String  @id // gmail | instagram
   autoReply Boolean @default(true)
 
-  account       String? // adresse Gmail ou pseudo Instagram
-  accountId     String? // Instagram : identifiant du compte professionnel
-  accountName   String?
-  accountAvatar String?
-  secret        String? // chiffré : mot de passe d'application Gmail / jeton Instagram
+  account        String? // adresse Gmail ou pseudo Instagram
+  accountId      String? // Instagram : identifiant du compte professionnel
+  accountName    String?
+  accountAvatar  String?
+  secret         String? // chiffré : mot de passe d'application Gmail / jeton Instagram
   tokenExpiresAt DateTime?
 
   // Instagram : application Meta
@@ -448,10 +448,10 @@ model Lead {
   externalId String // Instagram : IGSID · e-mail : adresse en minuscules
   token      String @unique // lien perso : /d/<token>
 
-  name       String?
-  username   String? // pseudo Instagram
-  email      String?
-  avatarUrl  String? // photo de profil copiée sur le serveur (les liens Instagram expirent)
+  name      String?
+  username  String? // pseudo Instagram
+  email     String?
+  avatarUrl String? // photo de profil copiée sur le serveur (les liens Instagram expirent)
 
   autoRepliedAt  DateTime?
   clicks         Int       @default(0)

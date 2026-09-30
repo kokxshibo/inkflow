@@ -2,7 +2,7 @@
 
 import { cookies } from "next/headers";
 import { z } from "zod";
-import { db, getSettings, logActivity } from "@/lib/db";
+import { db, logActivity } from "@/lib/db";
 import { REF_COOKIE } from "@/lib/leads";
 import { storeBuffer } from "@/lib/storage";
 import { randomToken } from "@/lib/utils";
@@ -27,7 +27,14 @@ function requestSchema(lang: Lang) {
     instagram: optionalString,
     birthDate: optionalString,
     description: z.string().trim().min(20, errors.description),
-    bodyZone: optionalString,
+    // Emplacement écrit librement par le client (« intérieur du poignet gauche »).
+    bodyZone: z
+      .string()
+      .trim()
+      .max(120, errors.bodyZone)
+      .transform((value) => (value === "" ? null : value))
+      .nullable()
+      .default(null),
     sizeCm: optionalString,
     colorMode: z.string().default("blackgrey"),
     style: optionalString,
@@ -50,7 +57,25 @@ export interface RequestFormState {
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/avif"];
 const MAX_SIZE = 8 * 1024 * 1024;
-const MAX_FILES = 6;
+const MAX_BODY_PHOTOS = 3;
+const MAX_REFERENCES = 6;
+
+/** Enregistre les images valides d'un champ du formulaire et renvoie leurs adresses. */
+async function storeImages(entries: FormDataEntryValue[], max: number, folder: string) {
+  const files = entries
+    .filter((file): file is File => file instanceof File && file.size > 0)
+    .filter((file) => ALLOWED_TYPES.includes(file.type) && file.size <= MAX_SIZE)
+    .slice(0, max);
+
+  const urls: string[] = [];
+  for (const file of files) {
+    const extension = file.type.split("/")[1]?.replace("jpeg", "jpg") ?? "jpg";
+    urls.push(
+      await storeBuffer(Buffer.from(await file.arrayBuffer()), folder, `${randomToken(16)}.${extension}`),
+    );
+  }
+  return urls;
+}
 
 export async function submitRequest(
   _prev: RequestFormState,
@@ -81,27 +106,10 @@ export async function submitRequest(
 
   const input = parsed.data;
 
-  // Enregistrement des images de référence
-  const files = formData
-    .getAll("references")
-    .filter((file): file is File => file instanceof File && file.size > 0)
-    .slice(0, MAX_FILES);
-
-  const referenceUrls: string[] = [];
-  if (files.length > 0) {
-    const folder = `demandes/${randomToken(12)}`;
-    for (const file of files) {
-      if (!ALLOWED_TYPES.includes(file.type) || file.size > MAX_SIZE) continue;
-      const extension = file.type.split("/")[1]?.replace("jpeg", "jpg") ?? "jpg";
-      referenceUrls.push(
-        await storeBuffer(
-          Buffer.from(await file.arrayBuffer()),
-          folder,
-          `${randomToken(16)}.${extension}`,
-        ),
-      );
-    }
-  }
+  // Photos de la zone à tatouer, puis images d'inspiration, dans un même dossier.
+  const folder = `demandes/${randomToken(12)}`;
+  const bodyPhotoUrls = await storeImages(formData.getAll("bodyPhotos"), MAX_BODY_PHOTOS, folder);
+  const referenceUrls = await storeImages(formData.getAll("references"), MAX_REFERENCES, folder);
 
   // Arrivé par un lien perso (Instagram / Gmail) : la demande rejoint le contact.
   const refToken = String(formData.get("ref") ?? "") || (await cookies()).get(REF_COOKIE)?.value;
@@ -120,6 +128,7 @@ export async function submitRequest(
       birthDate: input.birthDate ? new Date(input.birthDate) : null,
       description: input.description,
       bodyZone: input.bodyZone,
+      bodyPhotoUrls: JSON.stringify(bodyPhotoUrls),
       sizeCm: input.sizeCm,
       colorMode: input.colorMode,
       style: input.style,
@@ -150,9 +159,4 @@ export async function submitRequest(
   );
 
   return { success: true };
-}
-
-export async function getStudioName() {
-  const settings = await getSettings();
-  return settings.studioName;
 }

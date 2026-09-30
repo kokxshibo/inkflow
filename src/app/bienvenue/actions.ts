@@ -8,8 +8,7 @@ import { DEFAULT_EMAIL_TEMPLATES } from "@/lib/default-templates";
 
 const schema = z
   .object({
-    studioName: z.string().trim().min(1, "Ton nom d'artiste est requis"),
-    ownerName: z.string().trim().min(1, "Ton nom est requis"),
+    ownerName: z.string().trim().min(1, "Ton prénom et ton nom sont requis"),
     email: z.string().trim().email("Adresse e-mail invalide"),
     password: z.string().min(10, "10 caractères minimum"),
     confirm: z.string(),
@@ -66,7 +65,6 @@ export async function completeSetup(
     where: { id: 1 },
     create: {
       id: 1,
-      studioName: input.studioName,
       ownerName: input.ownerName,
       email: input.email.toLowerCase(),
       city: input.city,
@@ -74,7 +72,6 @@ export async function completeSetup(
       country: "CH",
     },
     update: {
-      studioName: input.studioName,
       ownerName: input.ownerName,
       email: input.email.toLowerCase(),
       city: input.city,

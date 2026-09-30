@@ -265,7 +265,7 @@ function TemplateDialog({
                 name="subject"
                 required
                 defaultValue={template?.subject ?? ""}
-                placeholder="Ton devis {{numero}} — {{artiste}}"
+                placeholder="Ton devis {{numero}} — {{tatoueur}}"
               />
             </Field>
 

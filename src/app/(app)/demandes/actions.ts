@@ -10,6 +10,7 @@ import { refreshLeadProfile, sendInstagramToLead, sendLinkByInstagram } from "@/
 import { markLeadRead } from "@/lib/leads";
 import { buildSignature } from "@/lib/mail";
 import { removeFile } from "@/lib/storage";
+import { parseJsonArray } from "@/lib/utils";
 
 export async function setRequestStatus(id: string, status: string) {
   await requireSession();
@@ -89,23 +90,24 @@ export async function convertRequest(id: string) {
     },
   });
 
-  // Les images de référence envoyées par le client suivent le projet.
-  const referenceUrls: string[] = (() => {
-    try {
-      const parsed = JSON.parse(request.referenceUrls);
-      return Array.isArray(parsed) ? parsed.map(String) : [];
-    } catch {
-      return [];
-    }
-  })();
+  // Les photos de la zone et les images de référence envoyées par le client
+  // suivent le projet.
+  const images = [
+    ...parseJsonArray(request.bodyPhotoUrls).map((url) => ({
+      url,
+      kind: "before",
+      caption: "Zone à tatouer, photo du client",
+    })),
+    ...parseJsonArray(request.referenceUrls).map((url) => ({
+      url,
+      kind: "reference",
+      caption: null,
+    })),
+  ];
 
-  if (referenceUrls.length > 0) {
+  if (images.length > 0) {
     await db.projectImage.createMany({
-      data: referenceUrls.map((url) => ({
-        projectId: project.id,
-        url,
-        kind: "reference",
-      })),
+      data: images.map((image) => ({ projectId: project.id, ...image })),
     });
   }
 
