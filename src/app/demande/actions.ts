@@ -35,11 +35,6 @@ function requestSchema(lang: Lang) {
       .transform((value) => (value === "" ? null : value))
       .nullable()
       .default(null),
-    sizeCm: optionalString,
-    colorMode: z.string().default("blackgrey"),
-    style: optionalString,
-    budget: optionalString,
-    availability: optionalString,
     isAdult: z.literal("on", { errorMap: () => ({ message: errors.isAdult }) }),
     consentGiven: z.literal("on", { errorMap: () => ({ message: errors.consentGiven }) }),
     hasContraindications: z.coerce.boolean().default(false),
@@ -129,11 +124,6 @@ export async function submitRequest(
       description: input.description,
       bodyZone: input.bodyZone,
       bodyPhotoUrls: JSON.stringify(bodyPhotoUrls),
-      sizeCm: input.sizeCm,
-      colorMode: input.colorMode,
-      style: input.style,
-      budget: input.budget,
-      availability: input.availability,
       isAdult: true,
       hasContraindications: input.hasContraindications,
       contraindications: input.contraindications,

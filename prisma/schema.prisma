@@ -383,8 +383,9 @@ model ProjectRequest {
   description   String
   bodyZone      String? // texte libre saisi par le client
   bodyPhotoUrls String  @default("[]") // JSON string[] : photos de la zone a tatouer
+  // Plus demandés par le formulaire : renseignés seulement sur d'anciennes demandes.
   sizeCm        String?
-  colorMode     String  @default("blackgrey")
+  colorMode     String?
   style         String?
   budget        String?
   availability  String?

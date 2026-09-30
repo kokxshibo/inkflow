@@ -85,7 +85,7 @@ export async function convertRequest(id: string) {
       widthCm: sizeMatch ? Number.parseFloat(sizeMatch[1].replace(",", ".")) : null,
       heightCm: sizeMatch ? Number.parseFloat(sizeMatch[2].replace(",", ".")) : null,
       style: request.style,
-      colorMode: request.colorMode,
+      colorMode: request.colorMode ?? undefined,
       status: "idea",
     },
   });

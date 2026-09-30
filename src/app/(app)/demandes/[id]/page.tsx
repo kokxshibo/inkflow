@@ -282,17 +282,22 @@ export default async function RequestDetailPage({
 
           <Card>
             <CardHeader>
-              <CardTitle>Caractéristiques</CardTitle>
+              <CardTitle>Informations</CardTitle>
             </CardHeader>
             <CardContent>
               <dl>
-                <DataRow label="Taille">{request.sizeCm ?? "—"}</DataRow>
-                <DataRow label="Rendu">{labelOf(COLOR_MODE, request.colorMode)}</DataRow>
-                <DataRow label="Style">{labelOf(PROJECT_STYLE, request.style)}</DataRow>
-                <DataRow label="Budget">{request.budget ?? "Non précisé"}</DataRow>
-                <DataRow label="Disponibilités">
-                  {request.availability ?? "Non précisées"}
-                </DataRow>
+                {/* Plus demandés par le formulaire : affichés pour d'anciennes demandes. */}
+                {request.sizeCm && <DataRow label="Taille">{request.sizeCm}</DataRow>}
+                {request.colorMode && (
+                  <DataRow label="Rendu">{labelOf(COLOR_MODE, request.colorMode)}</DataRow>
+                )}
+                {request.style && (
+                  <DataRow label="Style">{labelOf(PROJECT_STYLE, request.style)}</DataRow>
+                )}
+                {request.budget && <DataRow label="Budget">{request.budget}</DataRow>}
+                {request.availability && (
+                  <DataRow label="Disponibilités">{request.availability}</DataRow>
+                )}
                 {request.birthDate && (
                   <DataRow label="Naissance">
                     {formatDate(request.birthDate)}

@@ -14,18 +14,11 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { submitRequest, type RequestFormState } from "./actions";
-import {
-  BUDGET_LABELS,
-  COLOR_LABELS,
-  STYLE_LABELS,
-  translatedOptions,
-  type FormTexts,
-  type Lang,
-} from "./i18n";
+import type { FormTexts, Lang } from "./i18n";
 import { shrinkPhoto } from "@/lib/photo";
 import { cn, toDateInput } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { CheckboxField, Field, Input, Select, Textarea } from "@/components/ui/field";
+import { CheckboxField, Field, Input, Textarea } from "@/components/ui/field";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/avif"];
@@ -273,48 +266,6 @@ export function RequestForm({
             onBusy={onBusy}
             texts={t}
           />
-        </CardContent>
-      </Card>
-
-      {/* ── Précisions ── */}
-      <Card>
-        <CardHeader>
-          <div>
-            <CardTitle>{t.details}</CardTitle>
-            <p className="text-[13px] text-[var(--fg-muted)] mt-0.5">{t.detailsIntro}</p>
-          </div>
-        </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2">
-          <Field label={t.size} htmlFor="sizeCm" hint={t.sizeHint}>
-            <Input id="sizeCm" name="sizeCm" placeholder="15 x 20 cm" />
-          </Field>
-          <Field label={t.colorMode} htmlFor="colorMode">
-            <Select
-              id="colorMode"
-              name="colorMode"
-              defaultValue="blackgrey"
-              options={translatedOptions(COLOR_LABELS, lang)}
-            />
-          </Field>
-          <Field label={t.style} htmlFor="style">
-            <Select
-              id="style"
-              name="style"
-              placeholder={t.stylePlaceholder}
-              options={translatedOptions(STYLE_LABELS, lang)}
-            />
-          </Field>
-          <Field label={t.budget} htmlFor="budget">
-            <Select
-              id="budget"
-              name="budget"
-              placeholder={t.budgetPlaceholder}
-              options={translatedOptions(BUDGET_LABELS, lang)}
-            />
-          </Field>
-          <Field label={t.availability} htmlFor="availability" className="sm:col-span-2">
-            <Input id="availability" name="availability" placeholder={t.availabilityPlaceholder} />
-          </Field>
         </CardContent>
       </Card>
 

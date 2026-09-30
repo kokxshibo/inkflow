@@ -1,8 +1,8 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { Sparkles, Instagram, ExternalLink, ShieldAlert, Plug, MessagesSquare, Mail } from "lucide-react";
+import { Sparkles, Instagram, ExternalLink, ShieldAlert, Plug, MessagesSquare, Mail, Camera } from "lucide-react";
 import { db } from "@/lib/db";
-import { formatRelative, initials, truncate, isMinor } from "@/lib/utils";
+import { formatRelative, initials, truncate, isMinor, parseJsonArray } from "@/lib/utils";
 import { ALL_BODY_ZONES, COLOR_MODE, REQUEST_STATUS, labelOf } from "@/lib/constants";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge, StatusBadge } from "@/components/ui/badge";
@@ -249,6 +249,7 @@ export default async function RequestsPage({
           {requests.map((request) => {
             const minor = !request.isAdult || isMinor(request.birthDate);
             const username = request.lead?.username ?? request.instagram?.replace(/^@/, "");
+            const zonePhotos = parseJsonArray(request.bodyPhotoUrls).length;
             return (
               <div key={request.id} className="group relative">
                 <Card
@@ -301,16 +302,29 @@ export default async function RequestsPage({
                     {truncate(request.description.replace(/\s+/g, " "), 160)}
                   </p>
 
-                  <div className="flex flex-wrap gap-1.5 mt-auto pt-2.5 border-t border-[var(--border)]">
-                    {request.bodyZone && (
-                      <Badge className="max-w-56" title={labelOf(ALL_BODY_ZONES, request.bodyZone)}>
-                        <span className="truncate">{labelOf(ALL_BODY_ZONES, request.bodyZone)}</span>
-                      </Badge>
-                    )}
-                    {request.sizeCm && <Badge>{request.sizeCm}</Badge>}
-                    <Badge>{labelOf(COLOR_MODE, request.colorMode)}</Badge>
-                    {request.budget && <Badge tone="accent">{request.budget}</Badge>}
-                  </div>
+                  {(request.bodyZone ||
+                    zonePhotos > 0 ||
+                    request.sizeCm ||
+                    request.colorMode ||
+                    request.budget) && (
+                    <div className="flex flex-wrap gap-1.5 mt-auto pt-2.5 border-t border-[var(--border)]">
+                      {request.bodyZone && (
+                        <Badge className="max-w-56" title={labelOf(ALL_BODY_ZONES, request.bodyZone)}>
+                          <span className="truncate">{labelOf(ALL_BODY_ZONES, request.bodyZone)}</span>
+                        </Badge>
+                      )}
+                      {zonePhotos > 0 && (
+                        <Badge>
+                          <Camera className="size-3" />
+                          {zonePhotos === 1 ? "1 photo de la zone" : `${zonePhotos} photos de la zone`}
+                        </Badge>
+                      )}
+                      {/* Renseignés seulement sur d'anciennes demandes */}
+                      {request.sizeCm && <Badge>{request.sizeCm}</Badge>}
+                      {request.colorMode && <Badge>{labelOf(COLOR_MODE, request.colorMode)}</Badge>}
+                      {request.budget && <Badge tone="accent">{request.budget}</Badge>}
+                    </div>
+                  )}
                 </Card>
               </div>
             );

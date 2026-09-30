@@ -2,9 +2,8 @@
  * Textes du formulaire public de demande, en français (par défaut), allemand
  * (orthographe suisse : « ss » plutôt que « ß ») et anglais.
  *
- * Les valeurs enregistrées (rendu, style, budget) restent les mêmes quelle
- * que soit la langue : seuls les libellés affichés changent. L'emplacement est
- * un texte libre, écrit par le client.
+ * Le client écrit ses réponses dans sa langue ; la langue choisie est
+ * enregistrée avec la demande.
  */
 
 export const LANGUAGES = ["fr", "de", "en"] as const;
@@ -19,43 +18,6 @@ export const LANGUAGE_NAMES: Record<Lang, string> = {
   de: "Deutsch",
   en: "English",
 };
-
-type Labels = Record<string, Record<Lang, string>>;
-
-export const COLOR_LABELS: Labels = {
-  blackgrey: { fr: "Noir & gris", de: "Schwarz-Grau", en: "Black & grey" },
-  color: { fr: "Couleur", de: "Farbe", en: "Colour" },
-  dotwork: { fr: "Dotwork", de: "Dotwork", en: "Dotwork" },
-};
-
-export const STYLE_LABELS: Labels = {
-  realisme: { fr: "Réalisme", de: "Realismus", en: "Realism" },
-  old_school: { fr: "Old school", de: "Old School", en: "Old school" },
-  neo_trad: { fr: "Néo-traditionnel", de: "Neo Traditional", en: "Neo-traditional" },
-  blackwork: { fr: "Blackwork", de: "Blackwork", en: "Blackwork" },
-  fine_line: { fr: "Fine line", de: "Fineline", en: "Fine line" },
-  japonais: { fr: "Japonais", de: "Japanisch", en: "Japanese" },
-  lettrage: { fr: "Lettrage", de: "Schriftzug", en: "Lettering" },
-  ornemental: { fr: "Ornemental", de: "Ornamental", en: "Ornamental" },
-  geometrique: { fr: "Géométrique", de: "Geometrisch", en: "Geometric" },
-  aquarelle: { fr: "Aquarelle", de: "Aquarell", en: "Watercolour" },
-  tribal: { fr: "Tribal", de: "Tribal", en: "Tribal" },
-  autre: { fr: "Autre", de: "Anderer Stil", en: "Other" },
-};
-
-/** La valeur enregistrée est le libellé français, lu par le tatoueur. */
-export const BUDGET_LABELS: Labels = {
-  "Moins de 300 CHF": { fr: "Moins de 300 CHF", de: "Weniger als 300 CHF", en: "Under 300 CHF" },
-  "300 – 600 CHF": { fr: "300 – 600 CHF", de: "300 – 600 CHF", en: "300 – 600 CHF" },
-  "600 – 1'000 CHF": { fr: "600 – 1'000 CHF", de: "600 – 1'000 CHF", en: "600 – 1'000 CHF" },
-  "1'000 – 2'000 CHF": { fr: "1'000 – 2'000 CHF", de: "1'000 – 2'000 CHF", en: "1'000 – 2'000 CHF" },
-  "Plus de 2'000 CHF": { fr: "Plus de 2'000 CHF", de: "Mehr als 2'000 CHF", en: "Over 2'000 CHF" },
-  "Je ne sais pas encore": { fr: "Je ne sais pas encore", de: "Weiss ich noch nicht", en: "Not sure yet" },
-};
-
-export function translatedOptions(labels: Labels, lang: Lang) {
-  return Object.entries(labels).map(([value, label]) => ({ value, label: label[lang] }));
-}
 
 const DICTIONARY = {
   fr: {
@@ -107,17 +69,6 @@ const DICTIONARY = {
     imageTooLarge: "Une image dépasse 8 Mo et n'a pas pu être ajoutée.",
     preparingImages: "Préparation des photos…",
     imagesTooHeavy: "Tes images sont trop lourdes au total : retires-en une ou deux, puis renvoie.",
-    details: "Quelques précisions",
-    detailsIntro: "Facultatif, mais ça m'aide à te répondre plus vite.",
-    size: "Taille approximative",
-    sizeHint: "Par exemple : 15 x 20 cm",
-    colorMode: "Rendu souhaité",
-    style: "Style",
-    stylePlaceholder: "Je fais confiance",
-    budget: "Budget envisagé",
-    budgetPlaceholder: "Non précisé",
-    availability: "Tes disponibilités",
-    availabilityPlaceholder: "Plutôt en semaine, après 16 h",
     checks: "Quelques vérifications",
     medical: "J'ai une condition médicale à signaler",
     medicalHint:
@@ -196,17 +147,6 @@ const DICTIONARY = {
     imageTooLarge: "Ein Bild ist grösser als 8 MB und konnte nicht hinzugefügt werden.",
     preparingImages: "Fotos werden vorbereitet …",
     imagesTooHeavy: "Deine Bilder sind insgesamt zu gross: Entferne ein oder zwei und sende erneut.",
-    details: "Ein paar Details",
-    detailsIntro: "Optional, aber so kann ich dir schneller antworten.",
-    size: "Ungefähre Grösse",
-    sizeHint: "Zum Beispiel: 15 x 20 cm",
-    colorMode: "Gewünschte Ausführung",
-    style: "Stil",
-    stylePlaceholder: "Ich vertraue dir",
-    budget: "Geplantes Budget",
-    budgetPlaceholder: "Keine Angabe",
-    availability: "Deine Verfügbarkeit",
-    availabilityPlaceholder: "Eher unter der Woche, nach 16 Uhr",
     checks: "Noch ein paar Punkte",
     medical: "Ich habe eine gesundheitliche Besonderheit zu melden",
     medicalHint:
@@ -285,17 +225,6 @@ const DICTIONARY = {
     imageTooLarge: "An image is larger than 8 MB and couldn't be added.",
     preparingImages: "Preparing photos…",
     imagesTooHeavy: "Your images are too large in total: remove one or two, then send again.",
-    details: "A few details",
-    detailsIntro: "Optional, but it helps me reply faster.",
-    size: "Approximate size",
-    sizeHint: "For example: 15 x 20 cm",
-    colorMode: "Preferred look",
-    style: "Style",
-    stylePlaceholder: "I trust you",
-    budget: "Budget",
-    budgetPlaceholder: "Not specified",
-    availability: "Your availability",
-    availabilityPlaceholder: "Preferably weekdays, after 4 pm",
     checks: "A few checks",
     medical: "I have a medical condition to report",
     medicalHint: "Allergy, ongoing treatment, pregnancy, skin condition, blood clotting disorder…",
